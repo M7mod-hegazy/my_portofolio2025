@@ -59,7 +59,7 @@ export const Footer = () => {
               </div>
             </div>
             <div className="text-center md:text-left">
-              <h3 className="font-bold text-lg">Mohamed Hegazy</h3>
+              <h3 className="font-bold text-lg">Mahmoud Hegazi</h3>
               <p className="text-muted-foreground text-sm">Electronics & Telecommunications Engineer</p>
             </div>
           </div>
@@ -115,7 +115,7 @@ export const Footer = () => {
           {/* Copyright */}
           <div className="text-center md:text-right">
             <p className="text-muted-foreground text-sm flex items-center justify-center md:justify-end gap-1">
-              Made with <Heart className="w-4 h-4 text-red-500 fill-current" /> by Mohamed Hegazy
+              Made with <Heart className="w-4 h-4 text-red-500 fill-current" /> by Mahmoud Hegazi
             </p>
             <p className="text-muted-foreground text-xs mt-1">
               © {currentYear} All rights reserved.

@@ -74,7 +74,7 @@ export const Navigation = () => {
             </div>
           </div>
           <div className="glass-card px-3 py-2 group-hover:bg-primary/10 transition-all duration-300">
-            <div className="text-sm font-bold text-foreground group-hover:text-primary transition-colors duration-300">Mohamed Hegazy</div>
+            <div className="text-sm font-bold text-foreground group-hover:text-primary transition-colors duration-300">Mahmoud Hegazi</div>
             <div className="text-xs text-muted-foreground">Electronics & Telecommunications Engineer</div>
           </div>
         </button>
@@ -140,7 +140,7 @@ export const Navigation = () => {
                       </div>
                     </div>
                     <div>
-                      <h3 className="font-bold text-lg">Mohamed Hegazy</h3>
+                      <h3 className="font-bold text-lg">Mahmoud Hegazi</h3>
                       <p className="text-xs text-muted-foreground">Electronics & Telecommunications Engineer</p>
                     </div>
                   </div>

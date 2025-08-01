@@ -56,8 +56,8 @@ export const HeroSection = () => {
                   Portfolio
                 </p>
                 <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight">
-                  Creative
-                  <span className="text-gradient block">Developer</span>
+                  Mahmoud
+                  <span className="text-gradient block">Hegazi</span>
                 </h1>
               </div>
               

@@ -9,6 +9,13 @@
       }
     },
     {
+      "src": "api/seed.js",
+      "use": "@vercel/node",
+      "config": {
+        "maxDuration": 30
+      }
+    },
+    {
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
@@ -17,6 +24,10 @@
     }
   ],
   "routes": [
+    {
+      "src": "/api/seed",
+      "dest": "/api/seed.js"
+    },
     {
       "src": "/api/(.*)",
       "dest": "/server.ts"
