@@ -34,12 +34,18 @@
 In your Vercel project dashboard, go to Settings → Environment Variables and add:
 
 ```
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/portfolio?retryWrites=true&w=majority
+MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/portfolio?retryWrites=true&w=majority
 CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 NODE_ENV=production
 ```
+
+**Important**: Use your actual values from your .env file:
+- `MONGO_URI=mongodb+srv://m7mod:275757@portofoliocluster.qsaqr30.mongodb.net/?retryWrites=true&w=majority&appName=portofolioCluster`
+- `CLOUDINARY_CLOUD_NAME=dzqiwtiul`
+- `CLOUDINARY_API_KEY=552947119715469`
+- `CLOUDINARY_API_SECRET=6RQZtL2VeiNOpEaWmoCEKmdLyxM`
 
 ### Step 5: Deploy
 1. Click "Deploy" - Vercel will automatically build and deploy your site
