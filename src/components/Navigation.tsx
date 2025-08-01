@@ -53,7 +53,7 @@ export const Navigation = () => {
       <div className="fixed top-6 left-6 z-50 hidden md:block">
         <button
           onClick={() => scrollToSection('home')}
-          className="flex items-center space-x-3 transition-all duration-300 hover:scale-105 group"
+          className="flex flex-col items-center space-y-2 transition-all duration-300 hover:scale-105 group"
         >
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full blur-lg group-hover:blur-xl transition-all duration-300"></div>
@@ -61,21 +61,21 @@ export const Navigation = () => {
               <img
                 src="/logo.png"
                 alt="Mohamed Hegazy Logo"
-                className="w-8 h-8 object-contain filter brightness-0 invert group-hover:scale-110 transition-transform duration-300"
+                className="w-10 h-10 object-contain filter brightness-0 invert group-hover:scale-110 transition-transform duration-300"
                 onError={(e) => {
                   // Fallback if logo doesn't exist
                   e.currentTarget.style.display = 'none';
                   e.currentTarget.nextElementSibling?.classList.remove('hidden');
                 }}
               />
-              <div className="hidden w-8 h-8 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-sm">M</span>
+              <div className="hidden w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center">
+                <span className="text-white font-bold text-lg">M</span>
               </div>
             </div>
           </div>
-          <div className="glass-card px-3 py-2 group-hover:bg-primary/10 transition-all duration-300">
-            <div className="text-sm font-bold text-foreground group-hover:text-primary transition-colors duration-300">Mahmoud Hegazi</div>
-            <div className="text-xs text-muted-foreground">Electronics & Telecommunications Engineer</div>
+          <div className="glass-card px-3 py-1 group-hover:bg-primary/10 transition-all duration-300 text-center">
+            <div className="text-sm font-bold text-foreground group-hover:text-primary transition-colors duration-300 whitespace-nowrap">Mahmoud Hegazi</div>
+            <div className="text-xs text-muted-foreground whitespace-nowrap">Electronics Engineer</div>
           </div>
         </button>
       </div>
