@@ -522,7 +522,7 @@ const Admin = () => {
     } catch (error) {
       console.error('Error saving item:', error);
     }
-    
+
     setEditingItem(null);
     setItemType(null);
     setIsLoading(false);
@@ -1786,7 +1786,7 @@ const Admin = () => {
                           { icon: Plus, label: 'Add Project', color: 'from-blue-500 to-blue-600', action: () => { setItemType('Project'); setEditingItem({}); } },
                           { icon: Award, label: 'Add Certificate', color: 'from-green-500 to-green-600', action: () => { setItemType('Certification'); setEditingItem({}); } },
                           { icon: Code, label: 'Add Skill', color: 'from-purple-500 to-purple-600', action: () => setNewSkill({ name: '', icon: '', category: '', level: 'Intermediate' }) },
-                          { icon: Upload, label: 'Upload CV', color: 'from-orange-500 to-orange-600', action: () => {} }
+                          { icon: Upload, label: 'Upload CV', color: 'from-orange-500 to-orange-600', action: () => { } }
                         ].map((item, index) => (
                           <motion.div
                             key={item.label}
@@ -2251,8 +2251,8 @@ const Admin = () => {
                                     className={`h-2 rounded-full bg-gradient-to-r ${levelColors[skill.level as keyof typeof levelColors] || levelColors.Intermediate} transition-all duration-500`}
                                     style={{
                                       width: skill.level === 'Beginner' ? '25%' :
-                                             skill.level === 'Intermediate' ? '50%' :
-                                             skill.level === 'Advanced' ? '75%' : '100%'
+                                        skill.level === 'Intermediate' ? '50%' :
+                                          skill.level === 'Advanced' ? '75%' : '100%'
                                     }}
                                   />
                                 </div>
@@ -2402,128 +2402,128 @@ const Admin = () => {
                 {/* Projects List */}
                 <div className="lg:col-span-3 space-y-6">
 
-              {/* Projects Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                {projects.map((project: Project, index) => (
-                  <motion.div
-                    key={project._id || `project-${index}`}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: index * 0.1 }}
-                    className="group"
-                  >
-                    <Card className="border-0 bg-gradient-to-br from-background/50 to-secondary/20 backdrop-blur-sm hover:shadow-2xl transition-all duration-500 overflow-hidden">
-                      <div className="relative">
-                        <div className="aspect-video bg-gradient-to-br from-primary/10 to-accent/10 overflow-hidden">
-                          {project.images && project.images.length > 0 ? (
-                            <img
-                              src={project.images[0]}
-                              alt={project.title}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
-                              <Briefcase className="w-12 h-12 text-primary/60" />
+                  {/* Projects Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                    {projects.map((project: Project, index) => (
+                      <motion.div
+                        key={project._id || `project-${index}`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: index * 0.1 }}
+                        className="group"
+                      >
+                        <Card className="border-0 bg-gradient-to-br from-background/50 to-secondary/20 backdrop-blur-sm hover:shadow-2xl transition-all duration-500 overflow-hidden">
+                          <div className="relative">
+                            <div className="aspect-video bg-gradient-to-br from-primary/10 to-accent/10 overflow-hidden">
+                              {project.images && project.images.length > 0 ? (
+                                <img
+                                  src={project.images[0]}
+                                  alt={project.title}
+                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
+                                  <Briefcase className="w-12 h-12 text-primary/60" />
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                        <div className="absolute top-4 right-4">
-                          <Badge className="bg-background/80 text-foreground border-primary/20">
-                            {project.category || 'General'}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      <CardContent className="p-6">
-                        <div className="space-y-4">
-                          <div>
-                            <h4 className="font-bold text-xl mb-2 group-hover:text-primary transition-colors duration-300">
-                              {project.title}
-                            </h4>
-                            <p className="text-muted-foreground text-sm leading-relaxed line-clamp-3">
-                              {project.description}
-                            </p>
+                            <div className="absolute top-4 right-4">
+                              <Badge className="bg-background/80 text-foreground border-primary/20">
+                                {project.category || 'General'}
+                              </Badge>
+                            </div>
                           </div>
 
-                          {project.technologies && project.technologies.length > 0 && (
-                            <div className="space-y-2">
-                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                Technologies
-                              </p>
-                              <div className="flex flex-wrap gap-2">
-                                {project.technologies.slice(0, 4).map((tech, i) => (
-                                  <Badge key={i} variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">
-                                    {tech}
-                                  </Badge>
-                                ))}
-                                {project.technologies.length > 4 && (
-                                  <Badge variant="outline" className="text-xs border-primary/30">
-                                    +{project.technologies.length - 4} more
-                                  </Badge>
-                                )}
+                          <CardContent className="p-6">
+                            <div className="space-y-4">
+                              <div>
+                                <h4 className="font-bold text-xl mb-2 group-hover:text-primary transition-colors duration-300">
+                                  {project.title}
+                                </h4>
+                                <p className="text-muted-foreground text-sm leading-relaxed line-clamp-3">
+                                  {project.description}
+                                </p>
+                              </div>
+
+                              {project.technologies && project.technologies.length > 0 && (
+                                <div className="space-y-2">
+                                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                    Technologies
+                                  </p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {project.technologies.slice(0, 4).map((tech, i) => (
+                                      <Badge key={i} variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">
+                                        {tech}
+                                      </Badge>
+                                    ))}
+                                    {project.technologies.length > 4 && (
+                                      <Badge variant="outline" className="text-xs border-primary/30">
+                                        +{project.technologies.length - 4} more
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="flex gap-3 pt-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 bg-background/50 hover:bg-primary/10 border-primary/20 hover:border-primary/40"
+                                  onClick={() => {
+                                    setEditingProject(project);
+                                    setNewProject(project);
+                                    setUploadedImages(project.images || []);
+                                    setShowProjectForm(true);
+                                  }}
+                                >
+                                  <Edit className="w-4 h-4 mr-2" />
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="bg-background/50 hover:bg-destructive/10 border-destructive/20 hover:border-destructive/40 text-destructive"
+                                  onClick={() => handleDeleteProject(project._id!)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
                               </div>
                             </div>
-                          )}
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </div>
 
-                          <div className="flex gap-3 pt-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 bg-background/50 hover:bg-primary/10 border-primary/20 hover:border-primary/40"
-                              onClick={() => {
-                                setEditingProject(project);
-                                setNewProject(project);
-                                setUploadedImages(project.images || []);
-                                setShowProjectForm(true);
-                              }}
-                            >
-                              <Edit className="w-4 h-4 mr-2" />
-                              Edit
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="bg-background/50 hover:bg-destructive/10 border-destructive/20 hover:border-destructive/40 text-destructive"
-                              onClick={() => handleDeleteProject(project._id!)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                  {/* Empty State */}
+                  {projects.length === 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <Card className="border-0 bg-gradient-to-br from-background/50 to-secondary/20 backdrop-blur-sm">
+                        <CardContent className="p-16 text-center">
+                          <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-r from-primary/20 to-accent/20 flex items-center justify-center">
+                            <Briefcase className="w-12 h-12 text-primary" />
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
-              </div>
-
-              {/* Empty State */}
-              {projects.length === 0 && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <Card className="border-0 bg-gradient-to-br from-background/50 to-secondary/20 backdrop-blur-sm">
-                    <CardContent className="p-16 text-center">
-                      <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-r from-primary/20 to-accent/20 flex items-center justify-center">
-                        <Briefcase className="w-12 h-12 text-primary" />
-                      </div>
-                      <h3 className="text-2xl font-bold mb-4">No Projects Yet</h3>
-                      <p className="text-muted-foreground text-lg mb-8 max-w-md mx-auto">
-                        Start building your impressive portfolio by adding your first project. Showcase your skills and achievements!
-                      </p>
-                      <Button
-                        onClick={() => setShowProjectForm(true)}
-                        className="bg-gradient-to-r from-primary to-accent shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-3"
-                        size="lg"
-                      >
-                        <Plus className="w-5 h-5 mr-2" />
-                        Create Your First Project
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
+                          <h3 className="text-2xl font-bold mb-4">No Projects Yet</h3>
+                          <p className="text-muted-foreground text-lg mb-8 max-w-md mx-auto">
+                            Start building your impressive portfolio by adding your first project. Showcase your skills and achievements!
+                          </p>
+                          <Button
+                            onClick={() => setShowProjectForm(true)}
+                            className="bg-gradient-to-r from-primary to-accent shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-3"
+                            size="lg"
+                          >
+                            <Plus className="w-5 h-5 mr-2" />
+                            Create Your First Project
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -2706,14 +2706,13 @@ const Admin = () => {
                         <CardContent className="p-6">
                           <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-4">
-                              <div className={`p-3 rounded-xl bg-gradient-to-r ${
-                                item.type === 'work' ? 'from-blue-500 to-blue-600' :
-                                item.type === 'education' ? 'from-purple-500 to-purple-600' :
-                                'from-green-500 to-green-600'
-                              }`}>
+                              <div className={`p-3 rounded-xl bg-gradient-to-r ${item.type === 'work' ? 'from-blue-500 to-blue-600' :
+                                  item.type === 'education' ? 'from-purple-500 to-purple-600' :
+                                    'from-green-500 to-green-600'
+                                }`}>
                                 {item.type === 'work' ? <Briefcase className="w-5 h-5 text-white" /> :
-                                 item.type === 'education' ? <Award className="w-5 h-5 text-white" /> :
-                                 <MapPin className="w-5 h-5 text-white" />}
+                                  item.type === 'education' ? <Award className="w-5 h-5 text-white" /> :
+                                    <MapPin className="w-5 h-5 text-white" />}
                               </div>
                               <div>
                                 <h4 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors">
@@ -3403,11 +3402,10 @@ const Admin = () => {
 
                         {/* Drag and Drop Area */}
                         <div
-                          className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 ${
-                            dragActive
+                          className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 ${dragActive
                               ? 'border-primary bg-primary/10'
                               : 'border-primary/20 hover:border-primary/40 hover:bg-primary/5'
-                          }`}
+                            }`}
                           onDragOver={handleDragOver}
                           onDragLeave={handleDragLeave}
                           onDrop={handleDrop}
@@ -3627,11 +3625,10 @@ const Admin = () => {
 
                         {/* Upload Area */}
                         <div
-                          className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 ${
-                            dragActive
+                          className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 ${dragActive
                               ? 'border-primary bg-primary/10'
                               : 'border-primary/20 hover:border-primary/40 hover:bg-primary/5'
-                          }`}
+                            }`}
                           onDragOver={handleDragOver}
                           onDragLeave={handleDragLeave}
                           onDrop={(e) => {

@@ -311,4 +311,156 @@ All colors MUST be HSL.
   .glow {
     filter: drop-shadow(0 0 20px hsl(var(--primary) / 0.5));
   }
+
+  /* QUICK WIN 1: Smooth Scroll Behavior - Handled by Lenis */
+  /* html {
+    scroll-behavior: smooth;
+  } */
+
+  /* QUICK WIN 2: Link Hover Effects */
+  a {
+    transition: all 0.3s ease;
+  }
+
+  a:hover {
+    transform: translateY(-2px);
+  }
+
+  /* QUICK WIN 3: Button Glow on Hover */
+  button {
+    transition: all 0.3s ease;
+  }
+
+  button:hover {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+  }
+
+  /* QUICK WIN 4: Image Fade-in Animation */
+  img {
+    animation: fadeInImage 0.6s ease-in;
+  }
+
+  @keyframes fadeInImage {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* QUICK WIN 5: Card Hover Scale */
+  .card {
+    transition: all 0.3s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px hsl(var(--primary) / 0.2);
+  }
+
+  /* QUICK WIN 6: Input Focus Effects */
+  input, textarea, select {
+    transition: all 0.3s ease;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 15px hsl(var(--primary) / 0.2);
+    transform: translateY(-1px);
+  }
+
+  /* QUICK WIN 7: Badge/Tag Hover Effects */
+  .badge, [class*="badge"], [class*="tag"] {
+    transition: all 0.2s ease;
+  }
+
+  .badge:hover, [class*="badge"]:hover, [class*="tag"]:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px hsl(var(--primary) / 0.3);
+  }
+
+  /* QUICK WIN 8: Section Fade-in on Scroll */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  section {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+
+  /* Section Theme Backgrounds */
+  #hero {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%);
+  }
+
+  #about {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(6, 182, 212, 0.05) 100%);
+  }
+
+  #journey {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(20, 184, 166, 0.05) 100%);
+  }
+
+  #skills {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(249, 115, 22, 0.05) 100%);
+  }
+
+  #projects {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(251, 191, 36, 0.05) 100%);
+  }
+
+  #certifications {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%);
+  }
+
+  #contact {
+    background: linear-gradient(135deg, rgba(113, 113, 122, 0.05) 0%, rgba(161, 161, 170, 0.05) 100%);
+  }
+
+  section:nth-of-type(1) {
+    animation-delay: 0s;
+  }
+
+  section:nth-of-type(2) {
+    animation-delay: 0.1s;
+  }
+
+  section:nth-of-type(3) {
+    animation-delay: 0.2s;
+  }
+
+  section:nth-of-type(4) {
+    animation-delay: 0.3s;
+  }
+
+  section:nth-of-type(5) {
+    animation-delay: 0.4s;
+  }
+
+  section:nth-of-type(6) {
+    animation-delay: 0.5s;
+  }
+
+  @keyframes marquee-scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  .animate-marquee {
+    animation: marquee-scroll 40s linear infinite;
+  }
+
+  .pause-on-hover:hover {
+    animation-play-state: paused;
+  }
 }
