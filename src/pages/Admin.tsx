@@ -13,8 +13,9 @@ import {
   Code, Server, Paintbrush, Bot, Plus, Edit, Trash2, Save, Upload,
   Users, Briefcase, Award, FileText, Settings, BarChart3, Eye,
   Search, Filter, Grid, List, Calendar, Star, TrendingUp, MapPin,
-  Trophy, GraduationCap, Globe
+  Trophy, GraduationCap, Globe, Menu, X
 } from 'lucide-react';
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet';
 import * as SimpleIcons from "react-icons/si";
 import { Tooltip } from '@/components/ui/tooltip';
 import React from 'react';
@@ -25,6 +26,7 @@ interface Skill {
   name: string;
   icon: string;
   category?: string;
+  level?: string;
 }
 interface Project {
   _id?: string;
@@ -48,6 +50,11 @@ interface Certification {
   credentialId?: string;
   verificationUrl?: string;
   image?: string;
+  // Optional internal fields
+  description?: string;
+  imageUrl?: string;
+  skills?: string[];
+  category?: string;
 }
 
 interface JourneyItem {
@@ -78,15 +85,6 @@ interface ContactInfo {
   facebook?: string;
   whatsapp?: string;
   messenger?: string;
-}
-interface Certification {
-  _id?: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-  skills: string[];
-  category: string;
-  // Add other fields as needed
 }
 
 function getSimpleIconName(skillName: string) {
@@ -1663,8 +1661,65 @@ const Admin = () => {
           transition={{ duration: 0.6, delay: 0.2 }}
         >
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-            <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-primary/10 pb-4">
-              <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-7 bg-gradient-to-r from-background/50 to-secondary/20 backdrop-blur-sm border border-primary/20 rounded-xl p-2">
+
+            {/* MOBILE HEADER & DRAWER (Visible on < lg) */}
+            <div className="lg:hidden flex items-center justify-between mb-6 sticky top-0 z-40 bg-background/80 backdrop-blur-xl p-4 -mx-6 border-b border-primary/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-gradient-to-r from-primary to-accent">
+                  {activeTab === 'overview' && <BarChart3 className="w-5 h-5 text-white" />}
+                  {activeTab === 'about' && <Users className="w-5 h-5 text-white" />}
+                  {activeTab === 'skills' && <Code className="w-5 h-5 text-white" />}
+                  {activeTab === 'projects' && <Briefcase className="w-5 h-5 text-white" />}
+                  {activeTab === 'certifications' && <Award className="w-5 h-5 text-white" />}
+                  {activeTab === 'journey' && <MapPin className="w-5 h-5 text-white" />}
+                  {activeTab === 'contact' && <Users className="w-5 h-5 text-white" />}
+                  {activeTab === 'cv' && <FileText className="w-5 h-5 text-white" />}
+                </div>
+                <span className="font-bold text-lg capitalize">{activeTab}</span>
+              </div>
+
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="border border-primary/20">
+                    <Menu className="w-6 h-6" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[300px] border-r-primary/20 bg-background/95 backdrop-blur-xl p-0">
+                  <div className="p-6 border-b border-primary/10 bg-gradient-to-r from-primary/10 to-transparent">
+                    <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                      Menu
+                    </h2>
+                  </div>
+                  <div className="flex flex-col p-4 gap-2">
+                    {[
+                      { id: 'overview', icon: BarChart3, label: 'Overview' },
+                      { id: 'about', icon: Users, label: 'About' },
+                      { id: 'skills', icon: Code, label: 'Skills' },
+                      { id: 'projects', icon: Briefcase, label: 'Projects' },
+                      { id: 'certifications', icon: Award, label: 'Certificates' },
+                      { id: 'journey', icon: MapPin, label: 'Journey' },
+                      { id: 'contact', icon: Users, label: 'Contact' },
+                      { id: 'cv', icon: FileText, label: 'CV' },
+                    ].map((item) => (
+                      <SheetClose key={item.id} asChild>
+                        <Button
+                          variant={activeTab === item.id ? "default" : "ghost"}
+                          onClick={() => setActiveTab(item.id)}
+                          className={`justify-start h-12 text-base font-medium ${activeTab === item.id ? 'bg-gradient-to-r from-primary to-accent' : 'hover:bg-primary/10'}`}
+                        >
+                          <item.icon className="w-5 h-5 mr-3" />
+                          {item.label}
+                        </Button>
+                      </SheetClose>
+                    ))}
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+
+            {/* DESKTOP TABS LIST (Visible on >= lg) */}
+            <div className="hidden lg:block sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-primary/10 pb-4">
+              <TabsList className="grid w-full grid-cols-7 bg-gradient-to-r from-background/50 to-secondary/20 backdrop-blur-sm border border-primary/20 rounded-xl p-2">
                 <TabsTrigger value="overview" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white rounded-lg transition-all duration-300">
                   <BarChart3 className="w-4 h-4" />
                   <span className="hidden sm:inline">Overview</span>
@@ -2707,8 +2762,8 @@ const Admin = () => {
                           <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-4">
                               <div className={`p-3 rounded-xl bg-gradient-to-r ${item.type === 'work' ? 'from-blue-500 to-blue-600' :
-                                  item.type === 'education' ? 'from-purple-500 to-purple-600' :
-                                    'from-green-500 to-green-600'
+                                item.type === 'education' ? 'from-purple-500 to-purple-600' :
+                                  'from-green-500 to-green-600'
                                 }`}>
                                 {item.type === 'work' ? <Briefcase className="w-5 h-5 text-white" /> :
                                   item.type === 'education' ? <Award className="w-5 h-5 text-white" /> :
@@ -3060,11 +3115,10 @@ const Admin = () => {
                     <div>
                       <label className="block text-sm font-medium mb-2">Select CV File</label>
                       <ImageUpload
-                        images={cvFile}
-                        setImages={setCvFile}
-                        maxImages={1}
-                        acceptedTypes=".pdf,.doc,.docx"
-                        className="border-2 border-dashed border-primary/20 hover:border-primary/40 transition-colors"
+                        onFilesChange={setCvFile}
+                        maxFiles={1}
+                        accept=".pdf,.doc,.docx"
+                        multiple={false}
                       />
                       <p className="text-xs text-muted-foreground mt-2">
                         Supported formats: PDF, DOC, DOCX (Max size: 10MB)
@@ -3403,8 +3457,8 @@ const Admin = () => {
                         {/* Drag and Drop Area */}
                         <div
                           className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 ${dragActive
-                              ? 'border-primary bg-primary/10'
-                              : 'border-primary/20 hover:border-primary/40 hover:bg-primary/5'
+                            ? 'border-primary bg-primary/10'
+                            : 'border-primary/20 hover:border-primary/40 hover:bg-primary/5'
                             }`}
                           onDragOver={handleDragOver}
                           onDragLeave={handleDragLeave}
@@ -3626,8 +3680,8 @@ const Admin = () => {
                         {/* Upload Area */}
                         <div
                           className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 ${dragActive
-                              ? 'border-primary bg-primary/10'
-                              : 'border-primary/20 hover:border-primary/40 hover:bg-primary/5'
+                            ? 'border-primary bg-primary/10'
+                            : 'border-primary/20 hover:border-primary/40 hover:bg-primary/5'
                             }`}
                           onDragOver={handleDragOver}
                           onDragLeave={handleDragLeave}

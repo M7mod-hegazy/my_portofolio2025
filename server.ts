@@ -142,6 +142,17 @@ export function createApiServer() {
     });
     const Category = mongoose.models.Category || mongoose.model('Category', CategorySchema);
 
+    // Contact Messages (form submissions)
+    const ContactMessageSchema = new mongoose.Schema({
+        name: { type: String, required: true },
+        email: { type: String, required: true },
+        message: { type: String, required: true },
+        read: { type: Boolean, default: false },
+        replied: { type: Boolean, default: false },
+        createdAt: { type: Date, default: Date.now }
+    });
+    const ContactMessage = mongoose.models.ContactMessage || mongoose.model('ContactMessage', ContactMessageSchema);
+
     // --- Seed Logic ---
     const seedDefaultHero = async () => {
         try {
@@ -287,11 +298,28 @@ export function createApiServer() {
     // Services
     app.get('/services', async (req, res) => res.json({ success: true, data: await Service.find() }));
     app.post('/services', async (req, res) => {
-        const { _id, ...data } = req.body;
-        const service = _id
-            ? await Service.findByIdAndUpdate(_id, data, { new: true })
-            : await new Service(data).save();
-        res.json({ success: true, data: service });
+        try {
+            const service = await new Service(req.body).save();
+            res.status(201).json({ success: true, data: service });
+        } catch (error) {
+            res.status(400).json({ success: false, error: (error as Error).message });
+        }
+    });
+    app.put('/services/:id', async (req, res) => {
+        try {
+            const service = await Service.findByIdAndUpdate(req.params.id, req.body, { new: true });
+            res.status(200).json({ success: true, data: service });
+        } catch (error) {
+            res.status(400).json({ success: false, error: (error as Error).message });
+        }
+    });
+    app.delete('/services/:id', async (req, res) => {
+        try {
+            await Service.findByIdAndDelete(req.params.id);
+            res.status(200).json({ success: true, data: {} });
+        } catch (error) {
+            res.status(400).json({ success: false, error: (error as Error).message });
+        }
     });
 
     // Hero
@@ -423,6 +451,43 @@ export function createApiServer() {
             const newCV = new CV(req.body);
             await newCV.save();
             res.status(201).json({ success: true, data: newCV });
+        } catch (error) {
+            res.status(400).json({ success: false, error: (error as Error).message });
+        }
+    });
+
+    // Contact Messages (form submissions)
+    app.get('/messages', async (req: Request, res: Response) => {
+        try {
+            const messages = await ContactMessage.find().sort({ createdAt: -1 });
+            res.status(200).json({ success: true, data: messages });
+        } catch (error) {
+            res.status(400).json({ success: false, error: (error as Error).message });
+        }
+    });
+
+    app.post('/messages', async (req: Request, res: Response) => {
+        try {
+            const message = await ContactMessage.create(req.body);
+            res.status(201).json({ success: true, data: message });
+        } catch (error) {
+            res.status(400).json({ success: false, error: (error as Error).message });
+        }
+    });
+
+    app.put('/messages/:id', async (req: Request, res: Response) => {
+        try {
+            const message = await ContactMessage.findByIdAndUpdate(req.params.id, req.body, { new: true });
+            res.status(200).json({ success: true, data: message });
+        } catch (error) {
+            res.status(400).json({ success: false, error: (error as Error).message });
+        }
+    });
+
+    app.delete('/messages/:id', async (req: Request, res: Response) => {
+        try {
+            await ContactMessage.findByIdAndDelete(req.params.id);
+            res.status(200).json({ success: true, data: {} });
         } catch (error) {
             res.status(400).json({ success: false, error: (error as Error).message });
         }

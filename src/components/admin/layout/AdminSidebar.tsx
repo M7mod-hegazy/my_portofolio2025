@@ -13,7 +13,8 @@ import {
     Layers,
     LogOut,
     Award,
-    Monitor
+    Monitor,
+    Mail
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,7 @@ const menuItems = [
     { icon: Map, label: "Journey", path: "/admin/journey" },
     { icon: Layers, label: "Services", path: "/admin/services" },
     { icon: Award, label: "Certificates", path: "/admin/certifications" },
+    { icon: Mail, label: "Messages", path: "/admin/messages" },
     { icon: Settings, label: "Settings", path: "/admin/settings" },
 ];
 

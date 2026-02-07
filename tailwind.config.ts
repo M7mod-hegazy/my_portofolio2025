@@ -78,7 +78,8 @@ export default {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'float': 'float 6s ease-in-out infinite',
-				'glow': 'glow 2s ease-in-out infinite alternate'
+				'glow': 'glow 2s ease-in-out infinite alternate',
+				'marquee': 'marquee var(--duration) linear infinite',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -109,6 +110,10 @@ export default {
 				'glow': {
 					'0%': { boxShadow: '0 0 20px hsl(var(--primary) / 0.5)' },
 					'100%': { boxShadow: '0 0 40px hsl(var(--primary) / 0.8)' }
+				},
+				'marquee': {
+					from: { transform: 'translateX(0)' },
+					to: { transform: 'translateX(calc(-100% - var(--gap)))' }
 				}
 			}
 		}

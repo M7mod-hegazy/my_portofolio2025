@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Menu, X, Home, User, Briefcase, Award, Settings, Mail, Map, Zap } from "lucide-react"
+import { Menu, X, Home, User, Briefcase, Award, Settings, Mail, Map, Zap, Layers } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
@@ -8,48 +8,30 @@ import { useTheme } from "@/context/ThemeContext"
 const navItems = [
   { id: "home", label: "Home", icon: Home, path: "/" },
   { id: "about", label: "About", icon: User, path: "/#about" },
+  { id: "services", label: "Services", icon: Layers, path: "/#services" },
   { id: "journey", label: "Journey", icon: Map, path: "/#journey" },
   { id: "skills", label: "Arsenal", icon: Zap, path: "/#skills" },
   { id: "projects", label: "Projects", icon: Briefcase, path: "/#projects" },
-  { id: "certifications", label: "Certifications", icon: Award, path: "/#certifications" },
+  { id: "certifications", label: "Certs", icon: Award, path: "/#certifications" },
   { id: "contact", label: "Contact", icon: Mail, path: "/#contact" },
 ]
 
 export const Navigation = () => {
+  const { currentSection, currentTheme, setCurrentSection } = useTheme();
+
+  // No local activeSection state needed, standardizing on global context
+  const activeSection = currentSection;
+
   const [isOpen, setIsOpen] = useState(false)
-  const [activeSection, setActiveSection] = useState("home")
-  const { currentTheme } = useTheme()
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const sections = navItems.map(item => item.id)
-      const scrollPosition = window.scrollY + 100
-
-      for (const section of sections) {
-        const element = document.getElementById(section)
-        if (element) {
-          const offsetTop = element.offsetTop
-          const offsetHeight = element.offsetHeight
-
-          if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
-            setActiveSection(section)
-            break
-          }
-        }
-      }
-    }
-
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
 
   const scrollToSection = (path: string, sectionId: string) => {
-
-
     if (window.location.pathname !== "/") {
       window.location.href = path;
       return;
     }
+
+    // INSTANT FEEDBACK: Set the theme/active section immediately upon click
+    setCurrentSection(sectionId);
 
     const element = document.getElementById(sectionId);
     if (element) {
@@ -74,7 +56,6 @@ export const Navigation = () => {
                 alt="Mohamed Hegazy Logo"
                 className="w-10 h-10 object-contain filter brightness-0 invert group-hover:scale-110 transition-transform duration-300"
                 onError={(e) => {
-                  // Fallback if logo doesn't exist
                   e.currentTarget.style.display = 'none';
                   e.currentTarget.nextElementSibling?.classList.remove('hidden');
                 }}
@@ -84,7 +65,6 @@ export const Navigation = () => {
               </div>
             </div>
           </div>
-
         </button>
       </div>
 
@@ -113,9 +93,15 @@ export const Navigation = () => {
                   style={
                     activeSection === item.id
                       ? {
-                        backgroundColor: item.id === "skills" ? "rgba(239, 68, 68, 0.2)" : `${currentTheme.primary}20`,
-                        color: item.id === "skills" ? "#ef4444" : currentTheme.primary,
-                        boxShadow: item.id === "skills" ? "0 0 15px rgba(239, 68, 68, 0.4)" : `0 0 15px ${currentTheme.primary}40`,
+                        backgroundColor: item.id === "skills" ? "rgba(239, 68, 68, 0.2)" :
+                          item.id === "services" ? "rgba(139, 92, 246, 0.2)" :
+                            `${currentTheme.primary}20`,
+                        color: item.id === "skills" ? "#ef4444" :
+                          item.id === "services" ? "#a855f7" :
+                            currentTheme.primary,
+                        boxShadow: item.id === "skills" ? "0 0 15px rgba(239, 68, 68, 0.4)" :
+                          item.id === "services" ? "0 0 15px rgba(139, 92, 246, 0.4)" :
+                            `0 0 15px ${currentTheme.primary}40`,
                       }
                       : {}
                   }
@@ -131,31 +117,64 @@ export const Navigation = () => {
         </div>
       </nav>
 
-      {/* Mobile Bottom Navigation (Thumb Menu) */}
-      <div className="md:hidden fixed bottom-6 left-6 right-6 z-50">
-        <div className="glass-card p-2 flex justify-between items-center bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
+      {/* Mobile Bottom Navigation (Premium Glass Dock) */}
+      <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-[95%] sm:max-w-md">
+        <div className="glass-card px-2 py-2 flex justify-between items-center bg-black/80 backdrop-blur-2xl border border-white/10 rounded-full shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] overflow-hidden">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = activeSection === item.id
+
             return (
               <button
                 key={item.id}
                 onClick={() => scrollToSection(item.path, item.id)}
                 className={cn(
-                  "relative p-3 rounded-xl transition-all duration-300 flex flex-col items-center justify-center",
-                  isActive ? (item.id === "skills" ? "text-red-500" : "text-primary") : "text-gray-400 hover:text-white"
+                  "relative flex items-center justify-center p-2.5 transition-all duration-300 rounded-full",
+                  isActive ? "flex-1 px-4 bg-white/10" : "flex-none text-white/50 hover:bg-white/5"
                 )}
               >
                 {isActive && (
                   <motion.div
-                    layoutId="activeTab"
-                    className="absolute inset-0 bg-white/10 rounded-xl"
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    layoutId="activeTabMobile"
+                    className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full border border-white/10"
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
                   />
                 )}
-                <Icon className={cn("w-5 h-5 relative z-10", isActive && "scale-110")} />
-                {/* Optional: Label for active item or just icon */}
-                {/* <span className="text-[10px] mt-1">{item.label}</span> */}
+
+                <div className="relative z-10 flex items-center gap-2">
+                  <Icon
+                    className={cn(
+                      "w-5 h-5 transition-all duration-300",
+                      isActive
+                        ? item.id === "skills" ? "text-red-400 drop-shadow-[0_0_8px_rgba(248,113,113,0.5)]"
+                          : item.id === "services" ? "text-purple-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.5)]"
+                            : item.id === "projects" ? "text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.5)]"
+                              : item.id === "certifications" ? "text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]"
+                                : "text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]"
+                        : "text-white/60"
+                    )}
+                  />
+
+                  <AnimatePresence>
+                    {isActive && (
+                      <motion.span
+                        initial={{ opacity: 0, width: 0 }}
+                        animate={{ opacity: 1, width: "auto" }}
+                        exit={{ opacity: 0, width: 0 }}
+                        className={cn(
+                          "whitespace-nowrap text-xs font-bold tracking-wide",
+                          item.id === "skills" ? "text-red-400"
+                            : item.id === "services" ? "text-purple-400"
+                              : item.id === "projects" ? "text-orange-400"
+                                : item.id === "certifications" ? "text-yellow-400"
+                                  : "text-cyan-400"
+                        )}
+                      >
+                        {item.label}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </div>
               </button>
             )
           })}

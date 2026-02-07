@@ -5,7 +5,8 @@ import {
     ChevronRight, ExternalLink, Calendar, Mail, Image, FileText,
     Check, Circle, Grip, Pencil, Save, Link2, AlertCircle, Globe,
     MessageSquare, User, Phone, Send, Archive, Star, Bookmark,
-    FolderOpen, Download, Upload, Eye, EyeOff, Copy, Trash, Edit3
+    FolderOpen, Download, Upload, Eye, EyeOff, Copy, Trash, Edit3,
+    BarChart3, TrendingUp, Users, MousePointerClick
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { GlassPanel } from "@/components/ui/glass-panel";
@@ -13,6 +14,7 @@ import { NeonButton } from "@/components/ui/neon-button";
 import { motionVariants } from "@/styles/design-tokens";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { getAnalyticsData } from "@/components/AnalyticsProvider";
 
 interface Task {
     id: string;
@@ -28,8 +30,19 @@ interface Note {
     updatedAt: Date;
 }
 
+interface AnalyticsData {
+    totalPageViews: number;
+    totalClicks: number;
+    sectionPopularity: Record<string, number>;
+    dailyViews: { date: string; views: number }[];
+    totalEvents: number;
+}
+
 export const DashboardHome = () => {
     const [currentTime, setCurrentTime] = useState(new Date());
+
+    // ANALYTICS STATE
+    const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
 
     // TASK MANAGER STATE
     const [tasks, setTasks] = useState<Task[]>(() => {
@@ -61,6 +74,33 @@ export const DashboardHome = () => {
 
     // SITE CONTENT STATS
     const [siteStats, setSiteStats] = useState({ projects: 0, skills: 0, milestones: 0, services: 0, certifications: 0 });
+
+    // MESSAGES STATE
+    const [messages, setMessages] = useState<any[]>([]);
+    const [loadingMessages, setLoadingMessages] = useState(true);
+
+    // Fetch analytics on mount
+    useEffect(() => {
+        setAnalytics(getAnalyticsData());
+    }, []);
+
+    // Fetch messages
+    useEffect(() => {
+        const fetchMessages = async () => {
+            try {
+                const res = await fetch('/api/messages');
+                const data = await res.json();
+                if (data.success) {
+                    setMessages(data.data || []);
+                }
+            } catch (e) {
+                console.error("Failed to fetch messages");
+            } finally {
+                setLoadingMessages(false);
+            }
+        };
+        fetchMessages();
+    }, []);
 
     // Save tasks to localStorage
     useEffect(() => {
@@ -216,6 +256,54 @@ export const DashboardHome = () => {
                         </GlassPanel>
                     </Link>
                 ))}
+            </div>
+
+            {/* ANALYTICS ROW */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <GlassPanel className="p-4 bg-gradient-to-br from-purple-500/10 to-transparent">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-purple-500/20">
+                            <Eye size={18} className="text-purple-400" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-white">{analytics?.totalPageViews || 0}</h3>
+                            <p className="text-xs text-gray-400">Page Views</p>
+                        </div>
+                    </div>
+                </GlassPanel>
+                <GlassPanel className="p-4 bg-gradient-to-br from-cyan-500/10 to-transparent">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-cyan-500/20">
+                            <MousePointerClick size={18} className="text-cyan-400" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-white">{analytics?.totalClicks || 0}</h3>
+                            <p className="text-xs text-gray-400">Clicks</p>
+                        </div>
+                    </div>
+                </GlassPanel>
+                <GlassPanel className="p-4 bg-gradient-to-br from-emerald-500/10 to-transparent">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-emerald-500/20">
+                            <MessageSquare size={18} className="text-emerald-400" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-white">{messages.length}</h3>
+                            <p className="text-xs text-gray-400">Messages</p>
+                        </div>
+                    </div>
+                </GlassPanel>
+                <GlassPanel className="p-4 bg-gradient-to-br from-orange-500/10 to-transparent">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-orange-500/20">
+                            <BarChart3 size={18} className="text-orange-400" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-white">{analytics?.totalEvents || 0}</h3>
+                            <p className="text-xs text-gray-400">Events</p>
+                        </div>
+                    </div>
+                </GlassPanel>
             </div>
 
             {/* MAIN GRID */}

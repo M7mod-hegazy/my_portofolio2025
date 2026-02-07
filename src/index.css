@@ -132,6 +132,7 @@ All colors MUST be HSL.
       hsl(var(--background)) 0%, 
       hsl(var(--secondary)) 100%);
     min-height: 100vh;
+    overflow-x: hidden;
   }
 
   /* Glassmorphism utilities */
@@ -462,5 +463,69 @@ All colors MUST be HSL.
 
   .pause-on-hover:hover {
     animation-play-state: paused;
+  }
+
+  /* ======== MOBILE-SPECIFIC UTILITIES ======== */
+  
+  /* Safe area for notched devices */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+
+  /* Scroll fade mask for horizontal scroll containers */
+  .scroll-fade-mask {
+    mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      black 8%,
+      black 92%,
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      black 8%,
+      black 92%,
+      transparent 100%
+    );
+  }
+
+  /* Touch target minimum sizing */
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .touch-target-lg {
+    min-width: 48px;
+    min-height: 48px;
+  }
+
+  /* Mobile card scaling */
+  @media (max-width: 640px) {
+    .mobile-card-compact {
+      padding: 1rem !important;
+    }
+    
+    .mobile-text-tight {
+      line-height: 1.3;
+      letter-spacing: -0.01em;
+    }
+  }
+
+  /* Reduce motion for accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

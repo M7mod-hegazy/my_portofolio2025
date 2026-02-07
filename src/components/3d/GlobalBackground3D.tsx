@@ -1,6 +1,7 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Points, PointMaterial } from "@react-three/drei";
 import { useRef, useState } from "react";
+import { useTheme } from "@/context/ThemeContext";
 
 const generateSpherePoints = (count: number, radius: number) => {
     const points = new Float32Array(count * 3);
@@ -25,11 +26,12 @@ const generateSpherePoints = (count: number, radius: number) => {
 const Stars = (props: any) => {
     const ref = useRef<any>();
     const [sphere] = useState(() => generateSpherePoints(5000, 1.5));
+    const { currentTheme } = useTheme();
 
     useFrame((state, delta) => {
         if (ref.current) {
-            ref.current.rotation.x -= delta / 10;
-            ref.current.rotation.y -= delta / 15;
+            ref.current.rotation.x -= delta / 15;
+            ref.current.rotation.y -= delta / 20;
         }
     });
 
@@ -38,10 +40,11 @@ const Stars = (props: any) => {
             <Points ref={ref} positions={sphere} stride={3} frustumCulled={false} {...props}>
                 <PointMaterial
                     transparent
-                    color="#88c0d0"
+                    color={currentTheme.primary}
                     size={0.002}
                     sizeAttenuation={true}
                     depthWrite={false}
+                    opacity={0.8}
                 />
             </Points>
         </group>
@@ -50,7 +53,7 @@ const Stars = (props: any) => {
 
 export const GlobalBackground3D = () => {
     return (
-        <div className="fixed inset-0 -z-10 bg-black pointer-events-none">
+        <div className="fixed inset-0 -z-10 bg-black pointer-events-none transition-colors duration-1000">
             <Canvas camera={{ position: [0, 0, 1] }}>
                 <Stars />
             </Canvas>

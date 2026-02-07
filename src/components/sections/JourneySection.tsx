@@ -3,6 +3,16 @@ import { motion, useScroll, useTransform, Variants, useInView } from "framer-mot
 import * as LucideIcons from "lucide-react";
 import * as SimpleIcons from "react-icons/si";
 import { cn } from "@/lib/utils";
+import { JourneyParallax } from "@/components/ui/journey-parallax";
+
+// Parallax images - abstract/geometric with teal/emerald tones
+const parallaxImages = [
+    { src: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=800&q=60', alt: 'Abstract gradient' },
+    { src: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=600&q=60', alt: 'Gradient mesh' },
+    { src: 'https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?w=600&q=60', alt: 'Abstract waves' },
+    { src: 'https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?w=600&q=60', alt: 'Geometric pattern' },
+    { src: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500&q=60', alt: 'Minimalist design' },
+];
 
 // Types
 interface JourneyItem {
@@ -20,15 +30,25 @@ interface JourneyItem {
     technologies?: string[];
 }
 
-const RenderIcon = ({ iconName, className }: { iconName?: string, className?: string }) => {
-    if (!iconName) return <LucideIcons.Briefcase className={className} />;
-    const isUrl = iconName.startsWith("http") || iconName.startsWith("/");
-    if (isUrl) return <img src={iconName} className={cn("object-contain", className)} alt="icon" />;
-    const isSimple = iconName.startsWith("Si");
+const RenderIcon = ({ iconName, className, itemType }: { iconName?: string, className?: string, itemType?: string }) => {
+    // Default icon based on item type
+    const defaultIcon = itemType === 'education' ? 'GraduationCap' : 'Briefcase';
+    let finalIconName = iconName || defaultIcon;
+
+    // FORCE CORRECT ICON: If it's education but has a work icon, override it
+    if (itemType === 'education' && finalIconName === 'Briefcase') {
+        finalIconName = 'GraduationCap';
+    }
+
+    if (finalIconName.startsWith("http") || finalIconName.startsWith("/")) {
+        return <img src={finalIconName} className={cn("object-contain", className)} alt="icon" />;
+    }
+
+    const isSimple = finalIconName.startsWith("Si");
     // @ts-ignore
     const IconLib = isSimple ? SimpleIcons : LucideIcons;
     // @ts-ignore
-    const IconComp = IconLib[iconName] || LucideIcons.Briefcase;
+    const IconComp = IconLib[finalIconName] || (itemType === 'education' ? LucideIcons.GraduationCap : LucideIcons.Briefcase);
     return <IconComp className={className} />;
 };
 
@@ -88,7 +108,7 @@ const WorkCard = ({ item, isEven }: { item: JourneyItem, isEven: boolean }) => {
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
             variants={containerVariants}
-            className="relative p-8 rounded-2xl bg-[#080808] border overflow-hidden group"
+            className="relative p-5 md:p-8 rounded-xl md:rounded-2xl bg-[#080808] border overflow-hidden group"
             style={{
                 borderColor: `${item.color}20`,
                 boxShadow: `0 0 0 1px ${item.color}05, 0 25px 50px -12px rgba(0,0,0,0.5)`
@@ -118,26 +138,26 @@ const WorkCard = ({ item, isEven }: { item: JourneyItem, isEven: boolean }) => {
             {/* Header Section */}
             <motion.div
                 variants={isEven ? slideInLeft : slideInRight}
-                className="flex items-start gap-5 mb-6 relative z-10"
+                className="flex items-start gap-3 md:gap-5 mb-4 md:mb-6 relative z-10"
             >
                 <motion.div
                     whileHover={{ scale: 1.1, rotate: 5 }}
                     transition={{ type: "spring", stiffness: 300 }}
-                    className="w-16 h-16 rounded-xl flex items-center justify-center border-2 bg-black/60 shadow-2xl shrink-0"
+                    className="w-12 h-12 md:w-16 md:h-16 rounded-lg md:rounded-xl flex items-center justify-center border-2 bg-black/60 shadow-2xl shrink-0"
                     style={{ borderColor: `${item.color}60`, color: item.color }}
                 >
-                    <RenderIcon iconName={item.icon} className="w-8 h-8" />
+                    <RenderIcon iconName={item.icon} itemType="work" className="w-6 h-6 md:w-8 md:h-8" />
                 </motion.div>
                 <div className="flex-1">
                     <motion.h3
                         variants={fadeUp}
-                        className="text-2xl md:text-3xl font-bold text-white mb-2 leading-tight"
+                        className="text-lg md:text-2xl lg:text-3xl font-bold text-white mb-1 md:mb-2 leading-tight"
                     >
                         {item.title}
                     </motion.h3>
                     <motion.div
                         variants={fadeUp}
-                        className="flex flex-wrap items-center gap-3 text-sm"
+                        className="flex flex-wrap items-center gap-2 md:gap-3 text-xs md:text-sm"
                     >
                         <span className="font-bold tracking-wide" style={{ color: item.color }}>{item.company}</span>
                         <span className="w-1 h-1 rounded-full bg-white/20" />
@@ -149,11 +169,11 @@ const WorkCard = ({ item, isEven }: { item: JourneyItem, isEven: boolean }) => {
             {/* Description */}
             <motion.div
                 variants={fadeUp}
-                className="relative z-10 mb-6"
+                className="relative z-10 mb-4 md:mb-6"
             >
                 <div className="flex items-stretch gap-4">
                     <div className="w-1 rounded-full shrink-0" style={{ backgroundColor: `${item.color}40` }} />
-                    <p className="text-gray-300 text-sm md:text-base leading-relaxed font-light">
+                    <p className="text-gray-300 text-[13px] md:text-sm lg:text-base leading-relaxed font-light">
                         {item.description}
                     </p>
                 </div>
@@ -163,14 +183,14 @@ const WorkCard = ({ item, isEven }: { item: JourneyItem, isEven: boolean }) => {
             {item.technologies && item.technologies.length > 0 && (
                 <motion.div
                     variants={containerVariants}
-                    className="flex flex-wrap gap-2 mb-6 relative z-10"
+                    className="flex flex-wrap gap-1.5 md:gap-2 mb-4 md:mb-6 relative z-10"
                 >
                     {item.technologies.slice(0, 10).map((tech, i) => (
                         <motion.span
                             key={i}
                             variants={scaleIn}
                             whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.1)" }}
-                            className="px-3 py-1.5 rounded-lg text-xs uppercase tracking-wider bg-white/5 border border-white/10 text-white/70 font-mono cursor-default transition-colors"
+                            className="px-2 py-1 md:px-3 md:py-1.5 rounded md:rounded-lg text-[10px] md:text-xs uppercase tracking-wider bg-white/5 border border-white/10 text-white/70 font-mono cursor-default transition-colors"
                             style={{ borderColor: i === 0 ? `${item.color}50` : undefined }}
                         >
                             {tech}
@@ -183,7 +203,7 @@ const WorkCard = ({ item, isEven }: { item: JourneyItem, isEven: boolean }) => {
             {item.achievements && item.achievements.length > 0 && (
                 <motion.div
                     variants={containerVariants}
-                    className="relative z-10 pt-4 border-t border-white/5"
+                    className="relative z-10 pt-3 md:pt-4 border-t border-white/5"
                 >
                     <motion.span
                         variants={fadeUp}
@@ -199,11 +219,11 @@ const WorkCard = ({ item, isEven }: { item: JourneyItem, isEven: boolean }) => {
                                 className="flex items-start gap-3 group/item"
                             >
                                 <LucideIcons.Zap
-                                    size={14}
-                                    className="shrink-0 mt-1 transition-transform group-hover/item:scale-125"
+                                    size={12}
+                                    className="shrink-0 mt-0.5 md:mt-1 transition-transform group-hover/item:scale-125"
                                     style={{ color: item.color }}
                                 />
-                                <span className="text-sm text-gray-400 group-hover/item:text-gray-300 transition-colors">
+                                <span className="text-[13px] md:text-sm text-gray-400 group-hover/item:text-gray-300 transition-colors">
                                     {ach}
                                 </span>
                             </motion.div>
@@ -228,7 +248,7 @@ const EducationCard = ({ item, isEven }: { item: JourneyItem, isEven: boolean })
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
             variants={containerVariants}
-            className="relative p-8 md:p-10 rounded-3xl bg-gradient-to-br from-white/[0.08] via-white/[0.03] to-transparent border border-white/10 overflow-hidden backdrop-blur-md"
+            className="relative p-5 md:p-8 lg:p-10 rounded-2xl md:rounded-3xl bg-gradient-to-br from-white/[0.08] via-white/[0.03] to-transparent border border-white/10 overflow-hidden backdrop-blur-md"
         >
             {/* Decorative Pattern */}
             <div className="absolute inset-0 opacity-[0.02] pointer-events-none">
@@ -242,7 +262,7 @@ const EducationCard = ({ item, isEven }: { item: JourneyItem, isEven: boolean })
                 transition={{ delay: 0.5, duration: 1 }}
                 className="absolute -top-10 -right-10 pointer-events-none"
             >
-                <LucideIcons.Scroll size={220} />
+                <LucideIcons.GraduationCap size={220} />
             </motion.div>
 
             {/* Year Badge */}
@@ -250,7 +270,7 @@ const EducationCard = ({ item, isEven }: { item: JourneyItem, isEven: boolean })
                 variants={scaleIn}
                 className="absolute top-6 right-6"
             >
-                <div className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-white/60 text-sm font-mono">
+                <div className="px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs md:text-sm font-mono">
                     {item.year}
                 </div>
             </motion.div>
@@ -258,24 +278,24 @@ const EducationCard = ({ item, isEven }: { item: JourneyItem, isEven: boolean })
             {/* Header */}
             <motion.div
                 variants={isEven ? slideInLeft : slideInRight}
-                className="flex items-center gap-6 mb-8 pb-6 border-b border-white/5"
+                className="flex items-center gap-4 md:gap-6 mb-5 md:mb-8 pb-4 md:pb-6 border-b border-white/5"
             >
                 <motion.div
                     whileHover={{ scale: 1.05 }}
-                    className="w-20 h-20 rounded-2xl bg-gradient-to-br from-white/15 to-white/5 border border-white/10 flex items-center justify-center text-white shrink-0 shadow-xl"
+                    className="w-14 h-14 md:w-20 md:h-20 rounded-xl md:rounded-2xl bg-gradient-to-br from-white/15 to-white/5 border border-white/10 flex items-center justify-center text-white shrink-0 shadow-xl"
                 >
-                    <RenderIcon iconName={item.icon || 'GraduationCap'} className="w-10 h-10" />
+                    <RenderIcon iconName={item.icon} itemType="education" className="w-7 h-7 md:w-10 md:h-10" />
                 </motion.div>
                 <div>
                     <motion.h3
                         variants={fadeUp}
-                        className="text-2xl md:text-4xl font-serif text-white tracking-wide leading-tight mb-2"
+                        className="text-lg md:text-2xl lg:text-4xl font-serif text-white tracking-wide leading-tight mb-1 md:mb-2"
                     >
                         {item.title}
                     </motion.h3>
                     <motion.p
                         variants={fadeUp}
-                        className="text-lg text-cyan-300/70 font-light"
+                        className="text-[13px] md:text-lg text-cyan-300/70 font-light"
                     >
                         {item.company}
                     </motion.p>
@@ -285,27 +305,29 @@ const EducationCard = ({ item, isEven }: { item: JourneyItem, isEven: boolean })
             {/* Info Grid */}
             <motion.div
                 variants={containerVariants}
-                className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8"
+                className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-5 md:mb-8"
             >
                 {item.location && (
                     <motion.div variants={itemVariants} className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">
-                            <LucideIcons.MapPin size={18} className="text-white/40" />
+                        <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-white/5 flex items-center justify-center">
+                            <LucideIcons.MapPin size={16} className="text-white/40 md:hidden" />
+                            <LucideIcons.MapPin size={18} className="text-white/40 hidden md:block" />
                         </div>
                         <div>
-                            <span className="text-[10px] uppercase tracking-widest text-white/30 block">Campus</span>
-                            <span className="text-white/80">{item.location}</span>
+                            <span className="text-[9px] md:text-[10px] uppercase tracking-widest text-white/30 block">Campus</span>
+                            <span className="text-white/80 text-[13px] md:text-base">{item.location}</span>
                         </div>
                     </motion.div>
                 )}
                 {item.period && (
                     <motion.div variants={itemVariants} className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">
-                            <LucideIcons.Clock size={18} className="text-white/40" />
+                        <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-white/5 flex items-center justify-center">
+                            <LucideIcons.Clock size={16} className="text-white/40 md:hidden" />
+                            <LucideIcons.Clock size={18} className="text-white/40 hidden md:block" />
                         </div>
                         <div>
-                            <span className="text-[10px] uppercase tracking-widest text-white/30 block">Duration</span>
-                            <span className="text-white/80">{item.period}</span>
+                            <span className="text-[9px] md:text-[10px] uppercase tracking-widest text-white/30 block">Duration</span>
+                            <span className="text-white/80 text-[13px] md:text-base">{item.period}</span>
                         </div>
                     </motion.div>
                 )}
@@ -313,20 +335,21 @@ const EducationCard = ({ item, isEven }: { item: JourneyItem, isEven: boolean })
 
             {/* Coursework Pills */}
             {item.technologies && item.technologies.length > 0 && (
-                <motion.div variants={containerVariants} className="mb-8">
+                <motion.div variants={containerVariants} className="mb-5 md:mb-8">
                     <motion.span
                         variants={fadeUp}
-                        className="flex items-center gap-2 text-xs uppercase tracking-widest text-white/30 mb-4"
+                        className="flex items-center gap-2 text-[10px] md:text-xs uppercase tracking-widest text-white/30 mb-3 md:mb-4"
                     >
-                        <LucideIcons.BookOpen size={14} /> Key Coursework
+                        <LucideIcons.BookOpen size={12} className="md:hidden" />
+                        <LucideIcons.BookOpen size={14} className="hidden md:block" /> Key Coursework
                     </motion.span>
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-wrap gap-2 md:gap-3">
                         {item.technologies.slice(0, 8).map((tech, i) => (
                             <motion.span
                                 key={i}
                                 variants={itemVariants}
                                 whileHover={{ y: -2 }}
-                                className="px-4 py-2 rounded-full bg-white/5 text-sm text-gray-300 border border-white/5 flex items-center gap-2 cursor-default"
+                                className="px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/5 text-[12px] md:text-sm text-gray-300 border border-white/5 flex items-center gap-2 cursor-default"
                             >
                                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
                                 {tech}
@@ -340,22 +363,24 @@ const EducationCard = ({ item, isEven }: { item: JourneyItem, isEven: boolean })
             {item.achievements && item.achievements.length > 0 && (
                 <motion.div
                     variants={containerVariants}
-                    className="bg-gradient-to-r from-yellow-500/10 via-yellow-500/5 to-transparent rounded-xl p-5 border-l-4 border-yellow-500/60"
+                    className="bg-gradient-to-r from-yellow-500/10 via-yellow-500/5 to-transparent rounded-lg md:rounded-xl p-4 md:p-5 border-l-4 border-yellow-500/60"
                 >
                     <motion.span
                         variants={fadeUp}
-                        className="flex items-center gap-2 text-xs uppercase tracking-widest text-yellow-400/80 mb-3 font-bold"
+                        className="flex items-center gap-2 text-[10px] md:text-xs uppercase tracking-widest text-yellow-400/80 mb-2 md:mb-3 font-bold"
                     >
-                        <LucideIcons.Trophy size={14} /> Honors & Achievements
+                        <LucideIcons.Trophy size={12} className="md:hidden" />
+                        <LucideIcons.Trophy size={14} className="hidden md:block" /> Honors & Achievements
                     </motion.span>
                     <div className="space-y-2">
                         {item.achievements.map((ach, i) => (
                             <motion.div
                                 key={i}
                                 variants={itemVariants}
-                                className="flex items-start gap-3 text-sm text-white/80"
+                                className="flex items-start gap-2 md:gap-3 text-[13px] md:text-sm text-white/80"
                             >
-                                <LucideIcons.Star size={14} className="shrink-0 mt-0.5 text-yellow-400/60" />
+                                <LucideIcons.Star size={12} className="shrink-0 mt-0.5 text-yellow-400/60 md:hidden" />
+                                <LucideIcons.Star size={14} className="shrink-0 mt-0.5 text-yellow-400/60 hidden md:block" />
                                 {ach}
                             </motion.div>
                         ))}
@@ -419,12 +444,12 @@ const TimelineRow = ({ item, index, isLast }: { item: JourneyItem, index: number
         <div
             ref={rowRef}
             className={cn(
-                "relative flex gap-8 md:gap-0 w-full",
+                "relative flex gap-4 md:gap-0 w-full mb-8 md:mb-0",
                 isEven ? "md:flex-row" : "md:flex-row-reverse"
             )}
         >
-            {/* Spine Column */}
-            <div className="absolute left-4 md:left-1/2 -translate-x-1/2 top-0 bottom-0 flex flex-col items-center z-10">
+            {/* Spine Column: Left on Mobile, Center on Desktop */}
+            <div className="absolute left-2 md:left-1/2 -translate-x-1/2 top-0 bottom-0 flex flex-col items-center z-10">
                 <TimelineNode item={item} index={index} />
                 {!isLast && (
                     <div className="w-0.5 grow mt-2 mb-2 bg-white/5 relative overflow-hidden">
@@ -444,9 +469,9 @@ const TimelineRow = ({ item, index, isLast }: { item: JourneyItem, index: number
                 )}
             </div>
 
-            {/* Content Column */}
+            {/* Content Column: Pushed Right on Mobile */}
             <div className={cn(
-                "flex-1 ml-20 md:ml-0 py-6 pb-24",
+                "flex-1 ml-12 md:ml-0 py-2 md:py-6 md:pb-24",
                 isEven ? "md:pr-28" : "md:pl-28"
             )}>
                 {item.type === 'education' ? (
@@ -456,7 +481,7 @@ const TimelineRow = ({ item, index, isLast }: { item: JourneyItem, index: number
                 )}
             </div>
 
-            {/* Balance Column */}
+            {/* Balance Column (Desktop Only) */}
             <div className="flex-1 hidden md:block" />
         </div>
     );
@@ -500,35 +525,42 @@ export const JourneySection = () => {
         <section
             ref={sectionRef}
             id="journey"
-            className="relative py-32 bg-[#030303] overflow-hidden min-h-screen"
+            className="relative py-16 md:py-32 bg-[#030303] overflow-hidden min-h-screen"
         >
-            {/* Ambient Background */}
-            <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute top-1/4 left-0 w-[600px] h-[600px] bg-purple-900/10 rounded-full blur-[150px]" />
-                <div className="absolute bottom-1/4 right-0 w-[600px] h-[600px] bg-cyan-900/10 rounded-full blur-[150px]" />
+            {/* Zoom Parallax Background */}
+            <JourneyParallax
+                images={parallaxImages}
+                accentColor="#10b981"
+                containerRef={sectionRef as React.RefObject<HTMLElement>}
+            />
+
+            {/* Ambient Background Glows */}
+            <div className="absolute inset-0 pointer-events-none z-[1]">
+                <div className="absolute top-1/4 left-0 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-emerald-900/10 rounded-full blur-[100px] md:blur-[150px]" />
+                <div className="absolute bottom-1/4 right-0 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-teal-900/10 rounded-full blur-[100px] md:blur-[150px]" />
             </div>
 
-            <div className="container mx-auto px-6 relative z-10">
+            <div className="container mx-auto px-4 md:px-6 relative z-10">
                 {/* Section Header */}
                 <motion.div
                     initial={{ opacity: 0, y: 40 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.8 }}
-                    className="text-center mb-32"
+                    className="text-center mb-16 md:mb-32"
                 >
                     <motion.span
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         transition={{ delay: 0.3 }}
-                        className="text-cyan-400 text-sm uppercase tracking-[0.3em] font-mono mb-4 block"
+                        className="text-emerald-400 text-xs md:text-sm uppercase tracking-[0.2em] md:tracking-[0.3em] font-mono mb-3 md:mb-4 block"
                     >
                         Experience & Education
                     </motion.span>
-                    <h2 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight text-white">
-                        My <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">Journey</span>
+                    <h2 className="text-3xl md:text-5xl lg:text-7xl font-bold mb-4 md:mb-6 tracking-tight text-white">
+                        My <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">Journey</span>
                     </h2>
-                    <p className="text-gray-400 max-w-2xl mx-auto text-lg">
+                    <p className="text-gray-400 max-w-2xl mx-auto text-sm md:text-lg px-4">
                         A timeline of growth, learning, and professional development
                     </p>
                 </motion.div>

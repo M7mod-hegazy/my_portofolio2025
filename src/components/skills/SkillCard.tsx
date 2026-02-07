@@ -17,12 +17,13 @@ interface SkillCardProps {
         certIds?: Array<{ _id: string; title: string; issuer: string }>;
     };
     index: number;
+    isMobile?: boolean; // Added isMobile prop
 }
 
 const ROTATION_RANGE = 20;
 const HALF_ROTATION_RANGE = ROTATION_RANGE / 2;
 
-export const SkillCard = ({ skill, index }: SkillCardProps) => {
+export const SkillCard = ({ skill, index, isMobile = false }: SkillCardProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
     const [hovered, setHovered] = useState(false);
@@ -32,7 +33,7 @@ export const SkillCard = ({ skill, index }: SkillCardProps) => {
         setMounted(true);
     }, []);
 
-    // Motion - Tilt
+    // Motion - Tilt (Reduced intensity on mobile)
     const x = useMotionValue(0);
     const y = useMotionValue(0);
     const xSpring = useSpring(x, { stiffness: 300, damping: 30 });
@@ -40,7 +41,7 @@ export const SkillCard = ({ skill, index }: SkillCardProps) => {
     const transform = useMotionTemplate`rotateX(${xSpring}deg) rotateY(${ySpring}deg)`;
 
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!ref.current || isOpen) return;
+        if (!ref.current || isOpen || isMobile) return; // Disable tilt on mobile
         const rect = ref.current.getBoundingClientRect();
         const width = rect.width;
         const height = rect.height;
@@ -62,7 +63,7 @@ export const SkillCard = ({ skill, index }: SkillCardProps) => {
         if (isUrl) {
             // Check for SVG extension to apply color
             const isSvg = skill.icon.endsWith('.svg');
-            return <img src={skill.icon} alt={skill.name} className={cn("w-8 h-8 object-contain transition-all duration-300", hovered ? "scale-110" : "grayscale opacity-70")} />
+            return <img src={skill.icon} alt={skill.name} className={cn("object-contain transition-all duration-300", isMobile ? "w-6 h-6" : "w-8 h-8", hovered ? "scale-110" : "grayscale opacity-70")} />
         }
 
         const isSimpleIcon = skill.icon.startsWith("Si");
@@ -75,11 +76,11 @@ export const SkillCard = ({ skill, index }: SkillCardProps) => {
             IconComponent = (skill.icon !== "Icon" && source[skill.icon]) || source.Box;
         }
 
-        if (!IconComponent) return <LucideIcons.Box className="w-8 h-8 text-gray-500" />;
+        if (!IconComponent) return <LucideIcons.Box className={cn("text-gray-500", isMobile ? "w-6 h-6" : "w-8 h-8")} />;
 
         return (
             <IconComponent
-                size={32}
+                size={isMobile ? 24 : 32}
                 className={cn(
                     "transition-all duration-300",
                     hovered ? theme.text : "text-gray-500 grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100"
@@ -174,11 +175,11 @@ export const SkillCard = ({ skill, index }: SkillCardProps) => {
                 whileInView="visible"
                 exit="exit"
                 viewport={{ once: true }}
-                style={{ transformStyle: "preserve-3d", transform: transform }}
+                style={{ transformStyle: "preserve-3d", transform: isMobile ? 'none' : transform }} // Disable tilt transform on mobile
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
                 onMouseEnter={() => setHovered(true)}
-                className="relative h-[120px] w-full cursor-pointer z-0 group"
+                className={cn("relative w-full cursor-pointer z-0 group", isMobile ? "h-[100px]" : "h-[120px]")}
             >
                 <div
                     className={cn(

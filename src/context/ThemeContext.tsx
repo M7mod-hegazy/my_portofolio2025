@@ -63,15 +63,25 @@ export const SECTION_THEMES: Record<string, Theme> = {
     secondaryHsl: '27 96% 61%',
     accentHsl: '27 100% 96%',
   },
+  services: {
+    name: 'Services',
+    primary: '#8b5cf6', // Violet-500
+    secondary: '#a78bfa', // Violet-400
+    accent: '#c4b5fd', // Violet-300
+    background: 'from-violet-900/20 to-purple-900/20',
+    primaryHsl: '270 95% 65%', // Violet
+    secondaryHsl: '270 95% 75%',
+    accentHsl: '270 100% 85%',
+  },
   certifications: {
     name: 'Certifications',
-    primary: '#2563eb', // Blue-600
-    secondary: '#3b82f6', // Blue-500
-    accent: '#60a5fa', // Blue-400
-    background: 'from-blue-900/20 to-indigo-900/20',
-    primaryHsl: '221 83% 53%',
-    secondaryHsl: '217 91% 60%',
-    accentHsl: '214 100% 84%',
+    primary: '#c5a059', // Gold
+    secondary: '#d4b87e', // Light Gold
+    accent: '#e6d3a3', // Pale Gold
+    background: 'from-yellow-900/20 to-amber-900/20',
+    primaryHsl: '43 48% 56%',
+    secondaryHsl: '43 50% 66%',
+    accentHsl: '43 55% 77%',
   },
   contact: {
     name: 'Contact',

@@ -212,14 +212,26 @@ export const JourneyAdmin = () => {
         }));
     };
 
-    const renderIconPreview = (iconName: string) => {
-        if (!iconName) return <LucideIcons.Briefcase className="w-5 h-5" />;
-        const isUrl = iconName.startsWith("http") || iconName.startsWith("/");
-        if (isUrl) return <img src={iconName} className="w-5 h-5 object-contain" alt="" />;
-        const isSimple = iconName.startsWith("Si");
+    const renderIconPreview = (iconName: string, itemType?: string) => {
+        // Default icon based on item type
+        const defaultIcon = itemType === 'education' ? 'GraduationCap' : itemType === 'project' ? 'Code' : 'Briefcase';
+        let finalIconName = iconName || defaultIcon;
+
+        // FORCE CORRECT ICON PREVIEW
+        if (itemType === 'education' && finalIconName === 'Briefcase') {
+            finalIconName = 'GraduationCap';
+        }
+
+        if (finalIconName.startsWith("http") || finalIconName.startsWith("/")) {
+            return <img src={finalIconName} className="w-5 h-5 object-contain" alt="" />;
+        }
+
+        const isSimple = finalIconName.startsWith("Si");
         const IconLib = isSimple ? SimpleIcons : LucideIcons;
         // @ts-ignore
-        const IconComp = IconLib[iconName] || LucideIcons.Briefcase;
+        const DefaultIcon = itemType === 'education' ? LucideIcons.GraduationCap : itemType === 'project' ? LucideIcons.Code : LucideIcons.Briefcase;
+        // @ts-ignore
+        const IconComp = IconLib[finalIconName] || DefaultIcon;
         return <IconComp className="w-5 h-5" />;
     };
 
@@ -314,7 +326,7 @@ export const JourneyAdmin = () => {
                             <div className="flex-1 min-w-0" onClick={() => handleSelect(item)}>
                                 <div className="flex items-center gap-2">
                                     <div className="p-1.5 rounded-lg bg-black/40 shrink-0" style={{ color: item.color || '#06b6d4' }}>
-                                        {renderIconPreview(item.icon || (item.type === 'education' ? 'GraduationCap' : item.type === 'project' ? 'Code' : 'Briefcase'))}
+                                        {renderIconPreview(item.icon, item.type)}
                                     </div>
                                     <div className="min-w-0">
                                         <h4 className="font-bold text-white text-sm truncate">{item.title}</h4>

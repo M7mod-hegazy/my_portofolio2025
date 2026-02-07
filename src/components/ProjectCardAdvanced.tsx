@@ -51,7 +51,7 @@ export const ProjectCardAdvanced = ({
           transition={{ duration: 0.4 }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-        
+
         {/* Featured Badge */}
         {featured && (
           <motion.div
