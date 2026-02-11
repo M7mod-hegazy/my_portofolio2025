@@ -8,6 +8,7 @@ import { Save, User, Plus, Trash2, Loader2, RefreshCw, Sparkles, Target, Tag, He
 import { ImageUpload } from "@/components/ImageUpload";
 import { motion } from "framer-motion";
 import { IconPicker } from "@/components/admin/shared/IconPicker";
+import { AdminLoader } from "../AdminLoader";
 
 interface Stat {
     label: string;
@@ -160,14 +161,7 @@ export const AboutAdmin = () => {
     const removeTag = (tag: string) => setData({ ...data, tags: data.tags.filter(t => t !== tag) });
 
     if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-[50vh]">
-                <div className="text-center space-y-4">
-                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-purple-400" />
-                    <p className="text-gray-400">Loading profile...</p>
-                </div>
-            </div>
-        );
+        return <AdminLoader />;
     }
 
     return (

@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { NeonButton } from "@/components/ui/neon-button";
+import { AdminLoader } from "../AdminLoader";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -142,11 +143,7 @@ export const ServicesAdmin = () => {
     };
 
     if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-[50vh]">
-                <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
-            </div>
-        );
+        return <AdminLoader />;
     }
 
     return (

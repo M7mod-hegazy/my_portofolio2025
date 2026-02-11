@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Save, FileText, Globe, Mail, Phone, MapPin, Linkedin, Github, Twitter, Facebook, Instagram, MessageCircle } from "lucide-react";
+import { AdminLoader } from "../AdminLoader";
 
 interface ContactDB {
     email: string;
@@ -92,6 +93,8 @@ export const SettingsAdmin = () => {
             toast.error("Failed to save CV");
         }
     };
+
+    if (isLoading) return <AdminLoader />;
 
     return (
         <div className="max-w-5xl mx-auto space-y-8 pb-20">

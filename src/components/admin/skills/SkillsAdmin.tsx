@@ -13,6 +13,7 @@ import { NeonButton } from "@/components/ui/neon-button";
 import { cn } from "@/lib/utils";
 import { IconPicker } from "../shared/IconPicker";
 import { CategoryManager } from "./CategoryManager";
+import { AdminLoader } from "../AdminLoader";
 import { MultiSelect } from "../shared/MultiSelect";
 
 interface SkillDB {
@@ -238,7 +239,7 @@ export const SkillsAdmin = () => {
         return IconInfo ? <IconInfo className={className} /> : <div className={cn("bg-white/10 rounded-full", className)} />;
     };
 
-    return (
+    return isLoading ? <AdminLoader /> : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 h-[calc(100vh-100px)]">
             {/* List Column */}
             <GlassPanel className="flex flex-col overflow-hidden h-full">

@@ -11,6 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { NeonButton } from "@/components/ui/neon-button";
+import { AdminLoader } from "../AdminLoader";
 import { motionVariants } from "@/styles/design-tokens";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
@@ -40,6 +41,7 @@ interface AnalyticsData {
 
 export const DashboardHome = () => {
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [isLoading, setIsLoading] = useState(true);
 
     // ANALYTICS STATE
     const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
@@ -145,6 +147,8 @@ export const DashboardHome = () => {
                 });
             } catch (e) {
                 console.error("Failed to fetch stats");
+            } finally {
+                setIsLoading(false);
             }
         };
         fetchStats();
@@ -214,7 +218,7 @@ export const DashboardHome = () => {
 
     const activeNote = notes.find(n => n.id === activeNoteId);
 
-    return (
+    return isLoading ? <AdminLoader /> : (
         <motion.div variants={motionVariants.container} initial="hidden" animate="show" className="space-y-6 relative z-10 pb-10">
 
             {/* BACKGROUND */}

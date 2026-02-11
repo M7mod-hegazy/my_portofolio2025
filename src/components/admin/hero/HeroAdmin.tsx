@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Save, Loader2, RefreshCw, Smartphone, Laptop, Monitor } from "lucide-react";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { NeonButton } from "@/components/ui/neon-button";
+import { AdminLoader } from "../AdminLoader";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -76,7 +77,7 @@ export const HeroAdmin = () => {
         }
     };
 
-    if (isLoading) return <div className="text-white flex items-center justify-center h-full">Loading...</div>;
+    if (isLoading) return <AdminLoader />;
 
     return (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 h-[calc(100vh-100px)]">

@@ -15,6 +15,7 @@ import * as LucideIcons from "lucide-react";
 import * as SimpleIcons from "react-icons/si";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { NeonButton } from "@/components/ui/neon-button";
+import { AdminLoader } from "../AdminLoader";
 import { IconPicker } from "../shared/IconPicker";
 import { MultiSelect } from "../shared/MultiSelect";
 import { cn } from "@/lib/utils";
@@ -244,11 +245,7 @@ export const JourneyAdmin = () => {
     const labels = getLabels(formData.type);
 
     if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-[50vh]">
-                <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
-            </div>
-        );
+        return <AdminLoader />;
     }
 
     return (

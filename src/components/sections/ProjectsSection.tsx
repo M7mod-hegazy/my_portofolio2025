@@ -34,6 +34,10 @@ export const ProjectsSection = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
+
   useEffect(() => {
     const fetchProjects = async () => {
       try {
@@ -71,6 +75,18 @@ export const ProjectsSection = () => {
     setCurrentImageIndex(0);
   }, [activeProject]);
 
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory]);
+
+  // Smooth scroll to top of grid when page changes
+  useEffect(() => {
+    if (currentPage !== 1) {
+      document.getElementById('projects-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [currentPage]);
+
   const nextImage = () => {
     if (activeProject?.images) {
       setCurrentImageIndex((prev) => (prev + 1) % activeProject.images.length);
@@ -94,6 +110,11 @@ export const ProjectsSection = () => {
     const matchesCategory = selectedCategory === "all" || project.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentProjects = filteredProjects.slice(startIndex, startIndex + itemsPerPage);
 
   if (isLoading) {
     return (
@@ -218,141 +239,240 @@ export const ProjectsSection = () => {
           </div>
         </div>
 
-        {/* MOBILE 2-COL GRID (Matching Certifications Style) */}
-        <div className="md:hidden grid grid-cols-2 gap-3 pb-24">
-          {filteredProjects.map((project) => (
-            <motion.div
-              key={project._id}
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              onClick={() => setActiveProject(project)}
-              className="relative aspect-[4/3] cursor-pointer group rounded-xl overflow-hidden border border-white/10 bg-gray-900/50 active:scale-[0.98] transition-transform"
-            >
-              {/* Image */}
-              {project.images?.[0] ? (
-                <img
-                  src={project.images[0]}
-                  alt={project.title}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              ) : (
-                <div className="absolute inset-0 bg-secondary/20 flex items-center justify-center text-orange-500/50">
-                  <Cpu size={32} />
-                </div>
-              )}
+        {/* Anchor for scroll */}
+        <div id="projects-grid" className="scroll-mt-32" />
 
-              {/* Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-
-              {/* Category Badge */}
-              <div className="absolute top-2 left-2">
-                <span className="px-2 py-0.5 bg-orange-500/20 border border-orange-500/30 rounded text-[9px] text-orange-300 font-medium uppercase">
-                  {project.category}
-                </span>
-              </div>
-
-              {/* Status Indicator */}
-              <div className="absolute top-2 right-2 flex items-center gap-1">
-                <span className={`w-2 h-2 rounded-full ${project.status === "Active" || !project.status ? "bg-green-400" : "bg-gray-400"}`} />
-                <span className="text-[10px] text-gray-300">{project.status || "Active"}</span>
-              </div>
-
-              {/* Title */}
-              <div className="absolute bottom-0 left-0 right-0 p-3">
-                <h4 className="text-[13px] font-semibold text-white leading-tight line-clamp-2">
-                  {project.title}
-                </h4>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Projects Grid (DESKTOP) */}
-        <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredProjects.map((project, index) => (
-            <motion.div
-              key={project._id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.1 }}
-              viewport={{ once: true }}
-              onClick={() => setActiveProject(project)}
-              className="group relative cursor-pointer"
-            >
-              {/* Card Container - "Sci-Fi Panel" */}
-              <div className="relative h-[450px] bg-secondary/5 border border-white/5 hover:border-orange-500/50 transition-all duration-300 overflow-hidden backdrop-blur-sm">
-
-                {/* Corner Brackets */}
-                <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-white/10 group-hover:border-orange-500 transition-colors z-20" />
-                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-white/10 group-hover:border-orange-500 transition-colors z-20" />
-
-                {/* Image Area with "Scanner" Effect */}
-                <div className="h-[220px] w-full relative overflow-hidden bg-black/50">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentPage + selectedCategory + searchQuery}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* MOBILE 2-COL GRID (Matching Certifications Style) */}
+            <div className="md:hidden grid grid-cols-2 gap-3 pb-8">
+              {currentProjects.map((project) => (
+                <motion.div
+                  key={project._id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  onClick={() => setActiveProject(project)}
+                  className="relative aspect-[4/3] cursor-pointer group rounded-xl overflow-hidden border border-white/10 bg-gray-900/50 active:scale-[0.98] transition-transform"
+                >
+                  {/* Image */}
                   {project.images?.[0] ? (
-                    <>
-                      <img
-                        src={project.images[0]}
-                        alt={project.title}
-                        className="w-full h-full object-cover opacity-80 group-hover:opacity-100 grayscale-[50%] group-hover:grayscale-0 transition-all duration-500"
-                      />
-                      {/* Scanning Line Animation */}
-                      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-orange-500/20 to-transparent h-[100%] w-full -translate-y-full group-hover:translate-y-full transition-transform duration-1000 ease-in-out pointer-events-none" />
-                    </>
+                    <img
+                      src={project.images[0]}
+                      alt={project.title}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-white/20 font-mono">
-                      <Cpu className="w-12 h-12 mb-2" />
-                      NO_SIGNAL
+                    <div className="absolute inset-0 bg-secondary/20 flex items-center justify-center text-orange-500/50">
+                      <Cpu size={32} />
                     </div>
                   )}
 
-                  {/* Status Badge */}
-                  <div className="absolute top-2 right-2 bg-black/80 backdrop-blur border border-orange-500/30 px-2 py-1 text-[10px] font-mono text-orange-400">
-                    STATUS: {project.status?.toUpperCase() || 'UNKNOWN'}
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+
+                  {/* Category Badge */}
+                  <div className="absolute top-2 left-2">
+                    <span className="px-2 py-0.5 bg-orange-500/20 border border-orange-500/30 rounded text-[9px] text-orange-300 font-medium uppercase">
+                      {project.category}
+                    </span>
                   </div>
+
+                  {/* Status Indicator */}
+                  <div className="absolute top-2 right-2 flex items-center gap-1">
+                    <span className={`w-2 h-2 rounded-full ${project.status === "Active" || !project.status ? "bg-green-400" : "bg-gray-400"}`} />
+                    <span className="text-[10px] text-gray-300">{project.status || "Active"}</span>
+                  </div>
+
+                  {/* Title */}
+                  <div className="absolute bottom-0 left-0 right-0 p-3">
+                    <h4 className="text-[13px] font-semibold text-white leading-tight line-clamp-2">
+                      {project.title}
+                    </h4>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Projects Grid (DESKTOP) */}
+            <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {currentProjects.map((project, index) => (
+                <motion.div
+                  key={project._id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                  onClick={() => setActiveProject(project)}
+                  className="group relative cursor-pointer"
+                >
+                  {/* Card Container - "Sci-Fi Panel" */}
+                  <div className="relative h-[450px] bg-secondary/5 border border-white/5 hover:border-orange-500/50 transition-all duration-300 overflow-hidden backdrop-blur-sm">
+
+                    {/* Corner Brackets */}
+                    <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-white/10 group-hover:border-orange-500 transition-colors z-20" />
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-white/10 group-hover:border-orange-500 transition-colors z-20" />
+
+                    {/* Image Area with "Scanner" Effect */}
+                    <div className="h-[220px] w-full relative overflow-hidden bg-black/50">
+                      {project.images?.[0] ? (
+                        <>
+                          <img
+                            src={project.images[0]}
+                            alt={project.title}
+                            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 grayscale-[50%] group-hover:grayscale-0 transition-all duration-500"
+                          />
+                          {/* Scanning Line Animation */}
+                          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-orange-500/20 to-transparent h-[100%] w-full -translate-y-full group-hover:translate-y-full transition-transform duration-1000 ease-in-out pointer-events-none" />
+                        </>
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-white/20 font-mono">
+                          <Cpu className="w-12 h-12 mb-2" />
+                          NO_SIGNAL
+                        </div>
+                      )}
+
+                      {/* Status Badge */}
+                      <div className="absolute top-2 right-2 bg-black/80 backdrop-blur border border-orange-500/30 px-2 py-1 text-[10px] font-mono text-orange-400">
+                        STATUS: {project.status?.toUpperCase() || 'UNKNOWN'}
+                      </div>
+                    </div>
+
+                    {/* Data Readout Area */}
+                    <div className="p-6 relative flex flex-col h-[230px]">
+                      {/* Technical Decor Lines */}
+                      <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-orange-900 to-transparent" />
+
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-xs font-mono text-orange-600">ID_REF: {project._id.slice(0, 6)}</span>
+                        <div className="h-px flex-1 bg-white/5" />
+                        <span className="text-[10px] font-bold bg-white/5 px-1.5 py-0.5 rounded text-muted-foreground">{project.category}</span>
+                      </div>
+
+                      <h3 className="text-2xl font-bold text-foreground mb-2 group-hover:text-orange-400 transition-colors truncate">
+                        {project.title}
+                      </h3>
+
+                      <p className="text-muted-foreground text-sm line-clamp-2 mb-4 font-mono leading-relaxed">
+                        {'>'} {project.description}
+                      </p>
+
+                      {/* Tech Stack Chips */}
+                      <div className="flex flex-wrap gap-1.5 mt-auto mb-4">
+                        {project.technologies.slice(0, 3).map(t => (
+                          <span key={t} className="text-[10px] uppercase font-bold px-2 py-1 bg-orange-900/10 text-orange-600 border border-orange-900/20">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* View Details Prompt */}
+                      <div className="pt-3 border-t border-white/5 flex items-center justify-between group-hover:text-orange-400 transition-colors mt-auto">
+                        <span className="text-xs font-mono">VIEW_DETAILS</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </div>
+                    </div>
+
+                    {/* Hover Action Strip */}
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Modern WebGL/HUD Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center mt-12 mb-20">
+            <div className="relative group">
+              {/* Glow Effect */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-orange-500/20 to-cyan-500/20 rounded-xl blur-lg opacity-50 group-hover:opacity-100 transition-opacity" />
+
+              <div className="relative flex items-center gap-2 bg-black/80 backdrop-blur-xl p-2 rounded-xl border border-white/10 ring-1 ring-white/5">
+
+                {/* Prev Button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  className="w-10 h-10 rounded-lg hover:bg-white/10 text-muted-foreground hover:text-white disabled:opacity-30"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </Button>
+
+                {/* Page Indicators */}
+                <div className="flex items-center gap-1 font-mono text-sm px-2">
+                  {Array.from({ length: totalPages }).map((_, i) => {
+                    const pageNum = i + 1;
+                    const isCurrent = currentPage === pageNum;
+
+                    // Show ellipsis for many pages - simple logic: show 1, current, last, and neighbors
+                    if (totalPages > 7) {
+                      if (
+                        pageNum === 1 ||
+                        pageNum === totalPages ||
+                        (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                      ) {
+                        // show button
+                      } else if (
+                        pageNum === currentPage - 2 ||
+                        pageNum === currentPage + 2
+                      ) {
+                        return <span key={i} className="text-muted-foreground/30 px-1">..</span>;
+                      } else {
+                        return null;
+                      }
+                    }
+
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`
+                            relative w-10 h-10 rounded-lg font-bold transition-all duration-300 flex items-center justify-center
+                            ${isCurrent
+                            ? "text-orange-500 bg-orange-500/10 border border-orange-500/50 shadow-[0_0_10px_rgba(249,115,22,0.2)]"
+                            : "text-muted-foreground hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10"
+                          }
+                            `}
+                      >
+                        {/* Number */}
+                        <span className="relative z-10">{pageNum.toString().padStart(2, '0')}</span>
+
+                        {/* Active Indicator Bars */}
+                        {isCurrent && (
+                          <>
+                            <span className="absolute top-0 right-0 w-1.5 h-1.5 border-t border-r border-orange-500 rounded-tr-sm" />
+                            <span className="absolute bottom-0 left-0 w-1.5 h-1.5 border-b border-l border-orange-500 rounded-bl-sm" />
+                          </>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
 
-                {/* Data Readout Area */}
-                <div className="p-6 relative flex flex-col h-[230px]">
-                  {/* Technical Decor Lines */}
-                  <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-orange-900 to-transparent" />
-
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-xs font-mono text-orange-600">ID_REF: {project._id.slice(0, 6)}</span>
-                    <div className="h-px flex-1 bg-white/5" />
-                    <span className="text-[10px] font-bold bg-white/5 px-1.5 py-0.5 rounded text-muted-foreground">{project.category}</span>
-                  </div>
-
-                  <h3 className="text-2xl font-bold text-foreground mb-2 group-hover:text-orange-400 transition-colors truncate">
-                    {project.title}
-                  </h3>
-
-                  <p className="text-muted-foreground text-sm line-clamp-2 mb-4 font-mono leading-relaxed">
-                    {'>'} {project.description}
-                  </p>
-
-                  {/* Tech Stack Chips */}
-                  <div className="flex flex-wrap gap-1.5 mt-auto mb-4">
-                    {project.technologies.slice(0, 3).map(t => (
-                      <span key={t} className="text-[10px] uppercase font-bold px-2 py-1 bg-orange-900/10 text-orange-600 border border-orange-900/20">
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* View Details Prompt */}
-                  <div className="pt-3 border-t border-white/5 flex items-center justify-between group-hover:text-orange-400 transition-colors mt-auto">
-                    <span className="text-xs font-mono">VIEW_DETAILS</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </div>
-                </div>
-
-                {/* Hover Action Strip */}
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+                {/* Next Button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  className="w-10 h-10 rounded-lg hover:bg-white/10 text-muted-foreground hover:text-white disabled:opacity-30"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </Button>
               </div>
-            </motion.div>
-          ))}
-        </div>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* Detailed Modal - "System Log" Style */}
