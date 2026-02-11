@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useTheme } from "next-themes";
+import { useEffect, useRef, useState } from "react";
 
 interface ConstellationBackgroundProps {
     color?: string;
@@ -10,14 +9,30 @@ interface ConstellationBackgroundProps {
 }
 
 export const ConstellationBackground = ({
-    color = "#c5a059", // Default gold/ochre
-    particleCount = 80,
-    connectionDistance = 150,
+    color = "#c5a059",
+    particleCount = 50, // Reduced from 80 (O(n²) scales badly)
+    connectionDistance = 120,
 }: ConstellationBackgroundProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const [isVisible, setIsVisible] = useState(false);
+
+    // Only animate when in viewport
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const observer = new IntersectionObserver(
+            ([entry]) => setIsVisible(entry.isIntersecting),
+            { threshold: 0.05 }
+        );
+        observer.observe(container);
+        return () => observer.disconnect();
+    }, []);
 
     useEffect(() => {
+        if (!isVisible) return;
+
         const canvas = canvasRef.current;
         const container = containerRef.current;
         if (!canvas || !container) return;
@@ -30,7 +45,6 @@ export const ConstellationBackground = ({
         let particles: Particle[] = [];
         let animationFrameId: number;
 
-        // Handle resize
         const handleResize = () => {
             width = container.offsetWidth;
             height = container.offsetHeight;
@@ -39,7 +53,6 @@ export const ConstellationBackground = ({
             initParticles();
         };
 
-        // Particle Class
         class Particle {
             x: number;
             y: number;
@@ -50,7 +63,7 @@ export const ConstellationBackground = ({
             constructor() {
                 this.x = Math.random() * width;
                 this.y = Math.random() * height;
-                this.vx = (Math.random() - 0.5) * 0.5; // Slow movement
+                this.vx = (Math.random() - 0.5) * 0.5;
                 this.vy = (Math.random() - 0.5) * 0.5;
                 this.size = Math.random() * 2 + 1;
             }
@@ -58,8 +71,6 @@ export const ConstellationBackground = ({
             update() {
                 this.x += this.vx;
                 this.y += this.vy;
-
-                // Bounce off edges
                 if (this.x < 0 || this.x > width) this.vx *= -1;
                 if (this.y < 0 || this.y > height) this.vy *= -1;
             }
@@ -75,8 +86,7 @@ export const ConstellationBackground = ({
 
         const initParticles = () => {
             particles = [];
-            // Adjust count based on screen size
-            const count = width < 768 ? particleCount / 2 : particleCount;
+            const count = width < 768 ? Math.floor(particleCount / 2) : particleCount;
             for (let i = 0; i < count; i++) {
                 particles.push(new Particle());
             }
@@ -85,13 +95,11 @@ export const ConstellationBackground = ({
         const animate = () => {
             ctx.clearRect(0, 0, width, height);
 
-            // Update and draw particles
             particles.forEach((particle) => {
                 particle.update();
                 particle.draw();
             });
 
-            // Draw connections
             connectParticles();
 
             animationFrameId = requestAnimationFrame(animate);
@@ -106,7 +114,7 @@ export const ConstellationBackground = ({
 
                     if (distance < connectionDistance) {
                         const opacity = 1 - distance / connectionDistance;
-                        ctx.strokeStyle = filterHex(color, opacity * 0.5); // Convert hex to rgba
+                        ctx.strokeStyle = filterHex(color, opacity * 0.5);
                         ctx.lineWidth = 0.5;
                         ctx.beginPath();
                         ctx.moveTo(particles[i].x, particles[i].y);
@@ -117,22 +125,18 @@ export const ConstellationBackground = ({
             }
         };
 
-        // Helper to convert hex to rgba
         const filterHex = (hex: string, alpha: number) => {
             let r = 0, g = 0, b = 0;
-            // 3 digits
             if (hex.length === 4) {
                 r = parseInt("0x" + hex[1] + hex[1]);
                 g = parseInt("0x" + hex[2] + hex[2]);
                 b = parseInt("0x" + hex[3] + hex[3]);
-            }
-            // 6 digits
-            else if (hex.length === 7) {
+            } else if (hex.length === 7) {
                 r = parseInt("0x" + hex[1] + hex[2]);
                 g = parseInt("0x" + hex[3] + hex[4]);
                 b = parseInt("0x" + hex[5] + hex[6]);
             }
-            return `rgba(${r},${g},${b},${alpha})`;
+            return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
         };
 
         window.addEventListener("resize", handleResize);
@@ -143,7 +147,7 @@ export const ConstellationBackground = ({
             window.removeEventListener("resize", handleResize);
             cancelAnimationFrame(animationFrameId);
         };
-    }, [color, particleCount, connectionDistance]);
+    }, [color, particleCount, connectionDistance, isVisible]);
 
     return (
         <div ref={containerRef} className="absolute inset-0 z-0 overflow-hidden pointer-events-none">

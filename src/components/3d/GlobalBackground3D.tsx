@@ -1,6 +1,6 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Points, PointMaterial } from "@react-three/drei";
-import { useRef, useState } from "react";
+import { useRef, useState, useCallback } from "react";
 import { useTheme } from "@/context/ThemeContext";
 
 const generateSpherePoints = (count: number, radius: number) => {
@@ -10,28 +10,31 @@ const generateSpherePoints = (count: number, radius: number) => {
         const v = Math.random();
         const theta = 2 * Math.PI * u;
         const phi = Math.acos(2 * v - 1);
-        const r = Math.cbrt(Math.random()) * radius; // Cubic root for uniform distribution
+        const r = Math.cbrt(Math.random()) * radius;
 
-        const x = r * Math.sin(phi) * Math.cos(theta);
-        const y = r * Math.sin(phi) * Math.sin(theta);
-        const z = r * Math.cos(phi);
-
-        points[i * 3] = x;
-        points[i * 3 + 1] = y;
-        points[i * 3 + 2] = z;
+        points[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+        points[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+        points[i * 3 + 2] = r * Math.cos(phi);
     }
     return points;
 };
 
 const Stars = (props: any) => {
     const ref = useRef<any>();
-    const [sphere] = useState(() => generateSpherePoints(5000, 1.5));
+    // Reduced from 5000 → 2000 (imperceptible at size 0.002)
+    const [sphere] = useState(() => generateSpherePoints(2000, 1.5));
     const { currentTheme } = useTheme();
+    const elapsed = useRef(0);
 
-    useFrame((state, delta) => {
+    // Throttle to ~15fps instead of 60fps
+    useFrame((_state, delta) => {
+        elapsed.current += delta;
+        if (elapsed.current < 0.066) return; // ~15fps
+        elapsed.current = 0;
+
         if (ref.current) {
-            ref.current.rotation.x -= delta / 15;
-            ref.current.rotation.y -= delta / 20;
+            ref.current.rotation.x -= 0.066 / 15;
+            ref.current.rotation.y -= 0.066 / 20;
         }
     });
 
@@ -54,7 +57,7 @@ const Stars = (props: any) => {
 export const GlobalBackground3D = () => {
     return (
         <div className="fixed inset-0 -z-10 bg-black pointer-events-none transition-colors duration-1000">
-            <Canvas camera={{ position: [0, 0, 1] }}>
+            <Canvas camera={{ position: [0, 0, 1] }} dpr={1} frameloop="always">
                 <Stars />
             </Canvas>
         </div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Github, Linkedin, Instagram, Facebook, Heart, ArrowUp, Mail, Code } from 'lucide-react';
 import { FaWhatsapp, FaFacebookMessenger, FaXTwitter } from 'react-icons/fa6';
 import { motion } from 'framer-motion';
+import { Waves } from '@/components/ui/wave-background';
 
 export const Footer = () => {
   const [contactInfo, setContactInfo] = useState({
@@ -45,11 +46,16 @@ export const Footer = () => {
   ];
 
   return (
-    <footer className="relative border-t border-primary/10 bg-gradient-to-b from-background to-secondary/10">
+    <footer className="relative border-t border-primary/10">
       {/* Background elements */}
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl opacity-40 dark:opacity-20"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-accent/5 rounded-full blur-3xl opacity-40 dark:opacity-20"></div>
+      {/* Background elements - Kinetic Waves */}
+      <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+        <Waves
+          backgroundColor="#020617" // Very dark slate/blue for footer
+          strokeColor="rgba(255,255,255,0.1)" // Very subtle white lines
+          className="opacity-40"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
       </div>
 
       <div className="container mx-auto px-4 md:px-6 lg:px-12 py-12 md:py-16 pb-32 md:pb-16">

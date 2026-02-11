@@ -6,6 +6,7 @@ import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ImageSwiper } from "@/components/ui/image-swiper";
+import { LiquidEffectAnimation } from "@/components/ui/liquid-effect-animation";
 
 interface Project {
   _id: string;
@@ -107,6 +108,9 @@ export const ProjectsSection = () => {
 
   return (
     <section id="projects" className="relative min-h-screen py-20 bg-background overflow-hidden selection:bg-orange-500/30">
+
+      {/* Liquid Effect Background */}
+      <LiquidEffectAnimation className="opacity-20" />
 
       {/* Background Grid & Circuit Patterns */}
       <div className="absolute inset-0 pointer-events-none opacity-20">

@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { motion, useInView } from "framer-motion";
 import * as LucideIcons from "lucide-react";
+import { NeonOrbs } from "@/components/ui/neon-orbs";
 
 interface Stat {
   label: string;
@@ -125,11 +126,8 @@ export const AboutSection = () => {
 
   return (
     <section ref={containerRef} id="about" className="py-16 md:py-24 lg:py-32 relative overflow-hidden bg-gradient-to-b from-background via-background/95 to-background">
-      {/* Ambient Background - smaller on mobile */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-cyan-500/5 rounded-full blur-[80px] md:blur-[120px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-[250px] md:w-[500px] h-[250px] md:h-[500px] bg-cyan-500/5 rounded-full blur-[80px] md:blur-[120px]" />
-      </div>
+      {/* Neon Orbs Background */}
+      <NeonOrbs className="opacity-30" />
 
       <div className="container mx-auto px-4 md:px-6 lg:px-12 relative z-10">
         {/* Section Label */}

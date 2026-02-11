@@ -1,8 +1,9 @@
 import { useRef, useState, useEffect } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
 import { AnimatedFolder, SkillItem, SkillCategory } from "@/components/ui/3d-folder";
 import { SkillDeck } from "@/components/skills/SkillDeck";
 import { Loader2 } from "lucide-react";
+import NeuralBackground from "@/components/ui/flow-field-background";
 
 // Category gradients matching your portfolio style
 const categoryGradients: Record<string, string> = {
@@ -41,13 +42,7 @@ export const SkillsSection = () => {
     const [skills, setSkills] = useState<SkillFromAPI[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Parallax for background
-    const { scrollYProgress } = useScroll({
-        target: containerRef,
-        offset: ["start end", "end start"],
-    });
 
-    const yBg = useTransform(scrollYProgress, [0, 1], [100, -100]);
 
     useEffect(() => {
         fetchSkills();
@@ -102,11 +97,13 @@ export const SkillsSection = () => {
             ref={containerRef}
             className="py-16 md:py-24 relative overflow-hidden min-h-screen flex flex-col items-center justify-center bg-background/50 backdrop-blur-sm z-20"
         >
-            {/* Cinematic Background */}
-            <motion.div style={{ y: yBg }} className="absolute inset-0 pointer-events-none opacity-20">
-                <div className="absolute top-1/4 left-1/4 w-[250px] md:w-[500px] h-[250px] md:h-[500px] bg-red-600/20 rounded-full blur-[80px] md:blur-[120px]" />
-                <div className="absolute bottom-1/4 right-1/4 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-rose-600/10 rounded-full blur-[80px] md:blur-[120px]" />
-            </motion.div>
+            {/* Cinematic Background - Flow Field */}
+            <NeuralBackground
+                color="#e11d48" // Rose-600 to match Arsenal theme
+                trailOpacity={0.2} // Slightly more visible trails
+                speed={0.7} // Slower, more tactical feel
+                className="opacity-40" // Blends with the dark background
+            />
 
             <div className="container mx-auto px-4 md:px-6 relative z-10 w-full mb-16 md:mb-32">
                 {/* Header */}

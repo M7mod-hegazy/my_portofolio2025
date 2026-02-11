@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, CheckCircle2, Loader2, Mail, MapPin, Phone, Github, Linkedin, Twitter, Instagram, Facebook } from "lucide-react";
 import { toast } from "sonner";
+import { ShaderBackground } from "@/components/ui/shader-background";
 
 interface ContactInfo {
   email?: string;
@@ -109,14 +110,8 @@ export const ContactSection = () => {
 
   return (
     <section id="contact" ref={containerRef} className="py-16 md:py-32 relative min-h-screen flex items-center justify-center overflow-hidden bg-background">
-      {/* Background Effects */}
-      <div className="absolute inset-0 pointer-events-none">
-        <motion.div style={{ y, opacity }} className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background" />
-          <div className="absolute top-1/4 left-1/4 w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-purple-500/10 rounded-full blur-[80px] md:blur-[120px]" />
-          <div className="absolute bottom-1/4 right-1/4 w-[250px] md:w-[400px] h-[250px] md:h-[400px] bg-cyan-500/10 rounded-full blur-[80px] md:blur-[120px]" />
-        </motion.div>
-      </div>
+      {/* Background Effects - WebGL Plasma Shader */}
+      <ShaderBackground className="pointer-events-none opacity-40" />
 
       <div className="container mx-auto px-4 md:px-6 relative z-10">
 
