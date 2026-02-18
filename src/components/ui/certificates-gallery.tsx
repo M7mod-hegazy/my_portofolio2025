@@ -12,6 +12,9 @@ interface Certificate {
     title: string;
     issuer: string;
     date?: string;
+    startDate?: string;
+    endDate?: string;
+    courseHours?: string;
     category?: string;
     description?: string;
     credentialId?: string;
@@ -44,7 +47,7 @@ export function CertificatesGallery({
         <div className={cn("relative w-full", className)}>
             {/* Desktop 3D overlapping layout - hidden on mobile */}
             <div className="hidden md:block relative overflow-visible pb-8">
-                <div className="flex -space-x-52 lg:-space-x-56 pb-8 pt-32 items-end justify-center">
+                <div className="flex pb-8 pt-32 items-end justify-center">
                     {certificates.map((cert, index) => {
                         const totalCerts = certificates.length
                         const middle = Math.floor(totalCerts / 2)
@@ -58,11 +61,19 @@ export function CertificatesGallery({
 
                         const yOffset = isHovered ? -130 : isOtherHovered ? 0 : -staggerOffset
 
+                        // Dynamic card width: shrinks as more certs are added (min 220px)
+                        const cardWidth = Math.max(220, 400 - Math.max(0, totalCerts - 7) * 18)
+                        // Dynamic overlap: tighter as more certs are added
+                        const overlap = Math.min(cardWidth * 0.82, 160 + Math.max(0, totalCerts - 3) * 16)
+
                         return (
                             <motion.div
                                 key={cert.id || cert._id || index}
                                 className="group cursor-pointer flex-shrink-0"
-                                style={{ zIndex }}
+                                style={{
+                                    zIndex,
+                                    marginLeft: index === 0 ? 0 : `-${overlap}px`,
+                                }}
                                 initial={{
                                     transform: `perspective(5000px) rotateY(-45deg) translateY(200px)`,
                                     opacity: 0,
@@ -82,8 +93,9 @@ export function CertificatesGallery({
                             >
                                 {/* Certificate Card - Top Info Design */}
                                 <div
-                                    className="relative w-[25rem] rounded-2xl overflow-hidden transition-all duration-500 group-hover:scale-[1.02]"
+                                    className="relative rounded-2xl overflow-hidden transition-all duration-500 group-hover:scale-[1.02]"
                                     style={{
+                                        width: `${cardWidth}px`,
                                         boxShadow: `rgba(0, 0, 0, 0.3) 0px 8px 32px, rgba(197, 160, 89, 0.08) 0px 0px 40px`,
                                     }}
                                 >

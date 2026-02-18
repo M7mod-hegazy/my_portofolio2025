@@ -1,6 +1,7 @@
 import { motion, HTMLMotionProps } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
+import { forwardRef } from "react";
 
 interface NeonButtonProps extends HTMLMotionProps<"button"> {
     variant?: "primary" | "secondary" | "danger" | "ghost";
@@ -9,7 +10,7 @@ interface NeonButtonProps extends HTMLMotionProps<"button"> {
     icon?: React.ReactNode;
 }
 
-export const NeonButton = ({
+export const NeonButton = forwardRef<HTMLButtonElement, NeonButtonProps>(({
     children,
     className,
     variant = "primary",
@@ -18,7 +19,7 @@ export const NeonButton = ({
     icon,
     disabled,
     ...props
-}: NeonButtonProps) => {
+}, ref) => {
 
     const variants = {
         primary: "bg-cyan-500/10 text-cyan-400 border-cyan-500/50 hover:bg-cyan-500/20 hover:shadow-[0_0_20px_rgba(34,211,238,0.4)]",
@@ -36,6 +37,7 @@ export const NeonButton = ({
 
     return (
         <motion.button
+            ref={ref}
             whileHover={{ scale: disabled ? 1 : 1.02 }}
             whileTap={{ scale: disabled ? 1 : 0.98 }}
             className={cn(
@@ -56,4 +58,6 @@ export const NeonButton = ({
             {children}
         </motion.button>
     );
-};
+});
+
+NeonButton.displayName = "NeonButton";

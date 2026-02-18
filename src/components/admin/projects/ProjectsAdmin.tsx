@@ -4,17 +4,19 @@ import { AdminLoader } from "../AdminLoader";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import {
     Plus, Search, Github, Globe, Star, Image as ImageIcon, Trash2, X, Edit2, Sparkles,
-    Upload, Eye, Loader2, Filter, LayoutGrid, List, ChevronLeft, ChevronRight, MoreVertical
+    Upload, Eye, Loader2, Filter, LayoutGrid, List, ChevronLeft, ChevronRight, MoreVertical, Film,
+    GripVertical, Crown, ArrowLeft, ArrowRight, ChevronUp, ChevronDown
 } from "lucide-react";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { NeonButton } from "@/components/ui/neon-button";
 import { ParallaxCard } from "@/components/ui/parallax-card";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Reorder } from "framer-motion";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -23,6 +25,10 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { CategoryManager } from "../skills/CategoryManager";
+import { MediaOptimizer, UploadMeta } from "../shared/MediaOptimizer";
+import { formatBytes } from "@/lib/utils";
+import { CardStack, CardStackItem } from "@/components/ui/card-stack";
 
 interface ProjectDB {
     _id?: string;
@@ -30,6 +36,7 @@ interface ProjectDB {
     description: string;
     longDescription?: string;
     images: string[];
+    videos?: string[];
     technologies: string[];
     features?: string[];
     category: string;
@@ -41,7 +48,7 @@ interface ProjectDB {
     featured?: boolean;
 }
 
-const CATEGORIES = ["All", "Web App", "Mobile App", "Website", "Design", "Other"];
+// Removed static CATEGORIES constant, now fetched dynamically
 const STATUS_OPTIONS = ["All Status", "Active", "In Progress", "Completed", "Archived"];
 const TECH_SUGGESTIONS = ["React", "Node.js", "TypeScript", "Next.js", "TailwindCSS", "MongoDB", "PostgreSQL", "Docker", "AWS", "Framer Motion", "Three.js", "Python", "Django", "FastAPI"];
 
@@ -51,11 +58,12 @@ export const ProjectsAdmin = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     // Grid/List View
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
     // Filter State
     const [search, setSearch] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("All");
+    const [categories, setCategories] = useState<string[]>(["All", "Web App", "Mobile App", "Other"]);
     const [selectedStatus, setSelectedStatus] = useState("All Status");
 
     // Pagination State
@@ -72,10 +80,44 @@ export const ProjectsAdmin = () => {
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
+    const [mediaMeta, setMediaMeta] = useState<Record<string, UploadMeta>>({});
+
+    // Gallery preview state
+    const [galleryOpen, setGalleryOpen] = useState(false);
+    const [galleryIndex, setGalleryIndex] = useState(0);
+
+    // ESC key to close gallery (capture phase to prevent Radix from also closing)
+    useEffect(() => {
+        if (!galleryOpen) return;
+        const handler = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                e.preventDefault();
+                setGalleryOpen(false);
+            }
+        };
+        window.addEventListener("keydown", handler, true); // capture phase
+        return () => window.removeEventListener("keydown", handler, true);
+    }, [galleryOpen]);
 
     useEffect(() => {
         fetchProjects();
+        fetchCategories();
     }, []);
+
+    const fetchCategories = async () => {
+        try {
+            const res = await fetch('/api/categories?type=project');
+            const json = await res.json();
+            if (json.success) {
+                const catNames = json.data.map((c: any) => c.name);
+                setCategories(["All", ...catNames]);
+            }
+        } catch (err) {
+            console.error("Failed to fetch categories");
+        }
+    };
 
     const fetchProjects = async () => {
         try {
@@ -90,6 +132,104 @@ export const ProjectsAdmin = () => {
             setIsLoading(false);
         }
     };
+
+    const handleReorder = async (newOrder: ProjectDB[]) => {
+        // 1. Optimistic UI Update
+        // We need to construct a new 'projects' array where the items currently being viewed 
+        // are replaced by 'newOrder'.
+        // Since 'paginatedProjects' is what 'newOrder' represents,
+        // we need to find these items in the main 'projects' array and re-arrange them.
+
+        // However, 'filteredProjects' might be a subset.
+        // If filters are active, we probably shouldn't allow reordering or it's context-dependent.
+        // Assuming "All" view for valid reordering:
+
+        const isFiltered = search !== "" || selectedCategory !== "All" || selectedStatus !== "All Status";
+
+        if (isFiltered) {
+            toast.error("Clear filters to reorder projects");
+            return;
+        }
+
+        // Calculate global indices for the items on this page
+        const startIndex = (currentPage - 1) * itemsPerPage;
+
+        // Create new projects array
+        const updatedProjects = [...projects];
+
+        // Splice the new order in
+        // Note: This assumes 'projects' is currently sorted same as 'paginatedProjects' (which it is)
+        updatedProjects.splice(startIndex, newOrder.length, ...newOrder);
+
+        setProjects(updatedProjects);
+
+        // 2. Backend Update
+        try {
+            // We need to send updates for ALL affected items. 
+            // Simpler: Just send the new index for the items we moved.
+            const updates = newOrder.map((p, i) => ({
+                id: p._id!,
+                order: startIndex + i
+            }));
+
+            await fetch('/api/projects/reorder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: updates })
+            });
+
+        } catch (error) {
+            console.error('Failed to save order', error);
+            toast.error("Failed to save order");
+        }
+    };
+
+    const handleMoveProject = async (project: ProjectDB, direction: -1 | 1) => {
+        const isFiltered = search !== "" || selectedCategory !== "All" || selectedStatus !== "All Status";
+
+        if (isFiltered) {
+            toast.error("Clear filters to reorder projects");
+            return;
+        }
+
+        const currentIndex = projects.findIndex(p => p._id === project._id);
+        if (currentIndex === -1) return;
+
+        const targetIndex = currentIndex + direction;
+
+        // Boundary checks
+        if (targetIndex < 0 || targetIndex >= projects.length) return;
+
+        // Create new array with swapped items
+        const newProjects = [...projects];
+        const itemToMove = newProjects[currentIndex];
+        const itemToSwap = newProjects[targetIndex];
+
+        newProjects[currentIndex] = itemToSwap;
+        newProjects[targetIndex] = itemToMove;
+
+        // Optimistic Update
+        setProjects(newProjects);
+
+        // Backend Update
+        try {
+            const updates = [
+                { id: itemToMove._id!, order: targetIndex },
+                { id: itemToSwap._id!, order: currentIndex }
+            ];
+
+            await fetch('/api/projects/reorder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: updates })
+            });
+        } catch (error) {
+            console.error('Failed to save order', error);
+            toast.error("Failed to move project");
+            // Revert on error could be added here
+        }
+    };
+
 
     // Filter Logic
     const filteredProjects = projects.filter(p => {
@@ -119,7 +259,7 @@ export const ProjectsAdmin = () => {
 
         try {
             const method = editingProject._id ? 'PUT' : 'POST';
-            const url = editingProject._id ? `/api/projects/${editingProject._id}` : '/api/projects';
+            const url = editingProject._id ? `/api/projects?id=${editingProject._id}` : '/api/projects';
             const { _id, ...payload } = editingProject;
 
             const res = await fetch(url, {
@@ -146,7 +286,7 @@ export const ProjectsAdmin = () => {
         e?.stopPropagation();
         if (!confirm("Are you sure? This cannot be undone.")) return;
         try {
-            await fetch(`/api/projects/${id}`, { method: 'DELETE' });
+            await fetch(`/api/projects?id=${id}`, { method: 'DELETE' });
             toast.success("Project deleted");
             fetchProjects();
         } catch (err) {
@@ -160,12 +300,14 @@ export const ProjectsAdmin = () => {
             description: "",
             longDescription: "",
             images: [],
+            videos: [],
             technologies: [],
             features: [],
             category: "Web App",
             status: "Active"
         });
         setTechInput("");
+        setGalleryOpen(false);
         setIsDialogOpen(true);
     };
 
@@ -173,6 +315,7 @@ export const ProjectsAdmin = () => {
         e?.stopPropagation();
         setEditingProject({ ...project });
         setTechInput("");
+        setGalleryOpen(false);
         setIsDialogOpen(true);
     };
 
@@ -190,16 +333,16 @@ export const ProjectsAdmin = () => {
     const uploadFiles = useCallback(async (files: File[]) => {
         if (!editingProject || files.length === 0) return;
 
-        const imageFiles = files.filter(f => f.type.startsWith('image/'));
-        if (imageFiles.length === 0) {
-            toast.error("Only image files are allowed");
+        const mediaFiles = files.filter(f => f.type.startsWith('image/') || f.type.startsWith('video/'));
+        if (mediaFiles.length === 0) {
+            toast.error("Only image and video files are allowed");
             return;
         }
 
         setIsUploading(true);
 
         const formData = new FormData();
-        imageFiles.forEach(file => formData.append('files', file));
+        mediaFiles.forEach(file => formData.append('files', file));
 
         try {
             const res = await fetch('/api/upload', {
@@ -209,12 +352,28 @@ export const ProjectsAdmin = () => {
 
             if (res.ok) {
                 const result = await res.json();
-                const newUrls: string[] = result.data.map((item: any) => item.url);
+                const newImageUrls: string[] = [];
+                const newVideoUrls: string[] = [];
+
+                result.data.forEach((item: any) => {
+                    // Cloudinary returns resource_type, or check the original file
+                    if (item.resource_type === 'video' || /\.(mp4|webm|mov|avi|mkv)$/i.test(item.url)) {
+                        newVideoUrls.push(item.url);
+                    } else {
+                        newImageUrls.push(item.url);
+                    }
+                });
+
                 setEditingProject(prev => prev ? {
                     ...prev,
-                    images: [...prev.images, ...newUrls]
+                    images: [...prev.images, ...newImageUrls],
+                    videos: [...(prev.videos || []), ...newVideoUrls]
                 } : prev);
-                toast.success(`${newUrls.length} image(s) uploaded`);
+
+                const parts = [];
+                if (newImageUrls.length) parts.push(`${newImageUrls.length} image(s)`);
+                if (newVideoUrls.length) parts.push(`${newVideoUrls.length} video(s)`);
+                toast.success(`${parts.join(' and ')} uploaded`);
             } else {
                 const err = await res.json();
                 toast.error(err.error || "Upload failed");
@@ -261,6 +420,25 @@ export const ProjectsAdmin = () => {
         });
     };
 
+    const moveImage = (from: number, to: number) => {
+        if (!editingProject) return;
+        if (to < 0 || to >= editingProject.images.length) return;
+        const imgs = [...editingProject.images];
+        const [moved] = imgs.splice(from, 1);
+        imgs.splice(to, 0, moved);
+        setEditingProject({ ...editingProject, images: imgs });
+    };
+
+    const setCoverImage = (index: number) => {
+        if (!editingProject || index === 0) return;
+        moveImage(index, 0);
+        toast.success('Cover image updated');
+    };
+
+    // Drag-and-drop state for image reorder
+    const dragIndexRef = useRef<number | null>(null);
+    const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
     // ─── Render ──────────────────────────────────────────────────────
     return (
         <div className="space-y-6 h-full flex flex-col">
@@ -275,9 +453,12 @@ export const ProjectsAdmin = () => {
                         </h1>
                         <p className="text-sm text-gray-400">Manage neural constructs and portfolios</p>
                     </div>
-                    <NeonButton onClick={openNewProject} icon={<Plus size={16} />} className="shadow-[0_0_20px_rgba(168,85,247,0.2)]">
-                        Create
-                    </NeonButton>
+                    <div className="flex gap-3">
+                        <CategoryManager categoryType="project" />
+                        <NeonButton onClick={openNewProject} icon={<Plus size={16} />} className="shadow-[0_0_20px_rgba(168,85,247,0.2)]">
+                            Create
+                        </NeonButton>
+                    </div>
                 </div>
 
                 {/* Bottom Row: Filters & Search */}
@@ -297,7 +478,7 @@ export const ProjectsAdmin = () => {
                     <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
                         {/* Category Filter */}
                         <div className="flex bg-black/40 border border-white/10 rounded-lg p-1 gap-1">
-                            {CATEGORIES.slice(0, 4).map(cat => ( // Show first few, use dropdown for more if needed
+                            {categories.slice(0, 4).map(cat => ( // Show first few, use dropdown for more if needed
                                 <button
                                     key={cat}
                                     onClick={() => setSelectedCategory(cat)}
@@ -348,15 +529,87 @@ export const ProjectsAdmin = () => {
                 ) : (
                     <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-20" : "flex flex-col gap-4 pb-20"}>
                         <AnimatePresence>
-                            {paginatedProjects.map(project => (
-                                <ProjectCard
-                                    key={project._id}
-                                    project={project}
-                                    viewMode={viewMode}
-                                    onEdit={(e) => openEditProject(project, e)}
-                                    onDelete={(e) => project._id && handleDelete(project._id, e)}
-                                />
-                            ))}
+                            {viewMode === 'grid' ? (
+                                paginatedProjects.map((project, index) => (
+                                    <div key={project._id} className="relative group">
+                                        <div className="absolute top-2 left-2 z-20 flex items-center gap-2">
+                                            <div className="bg-black/60 backdrop-blur-md text-white/80 font-mono text-xs px-2 py-1 rounded border border-white/10 shadow-lg">
+                                                #{((currentPage - 1) * itemsPerPage) + index + 1}
+                                            </div>
+                                        </div>
+                                        <ProjectCard
+                                            project={project}
+                                            viewMode={viewMode}
+                                            onEdit={(e) => openEditProject(project, e)}
+                                            onDelete={(e) => project._id && handleDelete(project._id, e)}
+                                        />
+                                    </div>
+                                ))
+                            ) : (
+                                <Reorder.Group axis="y" values={paginatedProjects} onReorder={(newOrder) => {
+                                    // Update local state to reflect drag immediately
+                                    // Note: This needs to update the main 'projects' state to persist
+                                    // For now, we'll just log or implement a proper reorder handler if possible
+                                    // efficiently given the pagination. 
+                                    // Ideally reordering should be done on the full list or a non-paginated view.
+                                    // For this implementation, we will assume reordering is only supported 
+                                    // when showing all projects or we will handle the index calculation.
+
+                                    // SIMPLE APPROACH: specific handler to update project order
+                                    handleReorder(newOrder);
+                                }} className="space-y-4">
+                                    {paginatedProjects.map((project, index) => {
+                                        const globalIndex = projects.findIndex(p => p._id === project._id);
+                                        const isFirst = globalIndex === 0;
+                                        const isLast = globalIndex === projects.length - 1;
+
+                                        return (
+                                            <Reorder.Item key={project._id} value={project}>
+                                                <div className="relative group flex items-center gap-2">
+                                                    {/* Manual Reorder Controls */}
+                                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-4 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center gap-1">
+                                                        <div className="flex bg-black/60 backdrop-blur-md rounded-lg border border-white/10 overflow-hidden shadow-xl">
+                                                            <div className="flex flex-col border-r border-white/10">
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); handleMoveProject(project, -1); }}
+                                                                    disabled={isFirst}
+                                                                    className="p-1 hover:bg-white/10 text-white/50 hover:text-cyan-400 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                                                                    title="Move Up"
+                                                                >
+                                                                    <ChevronUp size={12} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); handleMoveProject(project, 1); }}
+                                                                    disabled={isLast}
+                                                                    className="p-1 hover:bg-white/10 text-white/50 hover:text-cyan-400 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                                                                    title="Move Down"
+                                                                >
+                                                                    <ChevronDown size={12} />
+                                                                </button>
+                                                            </div>
+                                                            <div className="flex items-center px-2 bg-white/5">
+                                                                <span className="font-mono text-xs text-cyan-500">#{globalIndex + 1}</span>
+                                                            </div>
+                                                            <div className="p-2 cursor-grab active:cursor-grabbing text-white/20 hover:text-white/60 hover:bg-white/5 transition-colors border-l border-white/10 flex items-center justify-center">
+                                                                <GripVertical size={14} />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex-1">
+                                                        <ProjectCard
+                                                            project={project}
+                                                            viewMode={viewMode}
+                                                            onEdit={(e) => openEditProject(project, e)}
+                                                            onDelete={(e) => project._id && handleDelete(project._id, e)}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </Reorder.Item>
+                                        );
+                                    })}
+                                </Reorder.Group>
+                            )}
                         </AnimatePresence>
                     </div>
                 )}
@@ -391,7 +644,7 @@ export const ProjectsAdmin = () => {
             </div>
 
             {/* ═══ Edit/Create Dialog ═══ */}
-            <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setEditingProject(null); }}>
+            <Dialog open={isDialogOpen} onOpenChange={(open) => { if (!open && galleryOpen) return; setIsDialogOpen(open); if (!open) setEditingProject(null); }}>
                 <DialogContent className="bg-[#050510]/95 border-white/10 text-white max-w-4xl w-[95vw] max-h-[90vh] p-0 overflow-hidden backdrop-blur-xl z-[60]">
                     <div className="p-6 pb-0 border-b border-white/5">
                         <DialogHeader>
@@ -426,7 +679,7 @@ export const ProjectsAdmin = () => {
                                             onChange={e => setEditingProject({ ...editingProject, category: e.target.value })}
                                             className="w-full bg-black/40 border border-white/10 rounded-md p-2 text-sm focus:border-cyan-500/50 text-white outline-none"
                                         >
-                                            {CATEGORIES.filter(c => c !== "All").map(c => <option key={c} value={c} className="bg-[#050510]">{c}</option>)}
+                                            {categories.filter(c => c !== "All").map(c => <option key={c} value={c} className="bg-[#050510]">{c}</option>)}
                                         </select>
                                     </div>
                                 </div>
@@ -452,141 +705,200 @@ export const ProjectsAdmin = () => {
                                     />
                                 </div>
 
-                                {/* ─── Section 2: Drag & Drop Image Upload ─── */}
-                                <div className="space-y-3 p-4 border border-white/5 rounded-xl bg-white/[0.02]">
-                                    <Label className="text-cyan-400 text-xs uppercase tracking-wider flex items-center gap-2">
-                                        <ImageIcon className="w-4 h-4" />
-                                        Project Images
-                                        {editingProject.images.length > 0 && (
-                                            <span className="text-white/40 text-[10px] font-normal ml-1">({editingProject.images.length})</span>
-                                        )}
-                                    </Label>
+                                {/* ─── Section 2: Media Assets ─── */}
+                                <div className="space-y-6 p-4 border border-white/5 rounded-xl bg-white/[0.02]">
+                                    {/* Images */}
+                                    {/* Images */}
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <Label className="text-cyan-400 text-xs uppercase tracking-wider flex items-center gap-2 font-bold">
+                                                <ImageIcon className="w-4 h-4" />
+                                                Project Images
+                                            </Label>
+                                            <span className="text-[10px] text-white/30 font-mono">{editingProject.images.length} files</span>
+                                        </div>
 
-                                    {/* Drop Zone */}
-                                    <div
-                                        onDragOver={handleDragOver}
-                                        onDragLeave={handleDragLeave}
-                                        onDrop={handleDrop}
-                                        onClick={() => !isUploading && fileInputRef.current?.click()}
-                                        className={`
-                                        relative cursor-pointer rounded-xl border-2 border-dashed transition-all duration-300
-                                        ${isDragOver
-                                                ? "border-cyan-400 bg-cyan-500/10 shadow-[0_0_30px_rgba(6,182,212,0.15)]"
-                                                : "border-white/15 bg-white/[0.02] hover:border-white/30 hover:bg-white/[0.04]"
-                                            }
-                                        ${isUploading ? "pointer-events-none opacity-60" : ""}
-                                    `}
-                                    >
-                                        <input
-                                            ref={fileInputRef}
-                                            type="file"
-                                            accept="image/*"
-                                            multiple
-                                            onChange={handleFileInputChange}
-                                            className="hidden"
-                                        />
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                            {editingProject.images.map((img, index) => {
+                                                const meta = mediaMeta[img];
+                                                const saved = meta ? meta.originalSize - meta.optimizedSize : 0;
+                                                const savedPct = meta && meta.originalSize > 0 ? Math.round((saved / meta.originalSize) * 100) : 0;
+                                                const isCover = index === 0;
+                                                const isDragTarget = dragOverIndex === index;
+                                                return (
+                                                    <div
+                                                        key={img + index}
+                                                        draggable
+                                                        onDragStart={() => { dragIndexRef.current = index; }}
+                                                        onDragOver={(e) => { e.preventDefault(); setDragOverIndex(index); }}
+                                                        onDragEnter={(e) => { e.preventDefault(); setDragOverIndex(index); }}
+                                                        onDragLeave={() => { if (dragOverIndex === index) setDragOverIndex(null); }}
+                                                        onDrop={(e) => {
+                                                            e.preventDefault();
+                                                            if (dragIndexRef.current !== null && dragIndexRef.current !== index) {
+                                                                moveImage(dragIndexRef.current, index);
+                                                            }
+                                                            dragIndexRef.current = null;
+                                                            setDragOverIndex(null);
+                                                        }}
+                                                        onDragEnd={() => { dragIndexRef.current = null; setDragOverIndex(null); }}
+                                                        className={`
+                                                            relative aspect-video rounded-lg overflow-hidden group border-2 cursor-grab active:cursor-grabbing transition-all
+                                                            ${isCover ? 'border-orange-500/60 ring-1 ring-orange-500/20' : 'border-white/10'}
+                                                            ${isDragTarget ? 'border-dashed border-cyan-400 scale-[1.02] shadow-[0_0_15px_rgba(6,182,212,0.2)]' : ''}
+                                                        `}
+                                                    >
+                                                        <img src={img} alt={`Project ${index}`} className={`w-full h-full object-cover transition-opacity ${dragIndexRef.current === index ? 'opacity-40' : ''}`} />
 
-                                        <div className="flex flex-col items-center justify-center py-8 md:py-10 px-4 text-center">
-                                            {isUploading ? (
-                                                <>
-                                                    <Loader2 className="w-10 h-10 text-cyan-400 animate-spin mb-3" />
-                                                    <p className="text-sm text-cyan-400 font-medium">Uploading...</p>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <div className={`
-                                                    w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-all duration-300
-                                                    ${isDragOver
-                                                            ? "bg-cyan-500/20 text-cyan-400 scale-110"
-                                                            : "bg-white/5 text-white/30"
-                                                        }
-                                                `}>
-                                                        <Upload className="w-7 h-7" />
-                                                    </div>
-                                                    <p className="text-sm text-white/60 mb-1">
-                                                        {isDragOver ? (
-                                                            <span className="text-cyan-400 font-medium">Release to upload</span>
-                                                        ) : (
-                                                            <>
-                                                                <span className="text-cyan-400 font-medium">Click to browse</span>
-                                                                {" "}or drag and drop
-                                                            </>
+                                                        {/* Order Badge */}
+                                                        <div className={`absolute top-1.5 left-1.5 z-20 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${isCover ? 'bg-orange-500/90 text-white' : 'bg-black/70 text-white/70 backdrop-blur-sm'}`}>
+                                                            {isCover && <Crown size={10} className="text-white" />}
+                                                            {isCover ? 'COVER' : `#${index + 1}`}
+                                                        </div>
+
+                                                        {/* Drag Handle */}
+                                                        <div className="absolute top-1.5 right-1.5 z-20 p-1 bg-black/60 rounded text-white/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
+                                                            <GripVertical size={12} />
+                                                        </div>
+
+                                                        {/* Hover Overlay with Controls */}
+                                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 z-10">
+                                                            {/* Arrow Controls */}
+                                                            <div className="flex items-center gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => { e.stopPropagation(); moveImage(index, index - 1); }}
+                                                                    disabled={index === 0}
+                                                                    className="p-1.5 bg-white/10 hover:bg-white/20 rounded-full text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                                                                    title="Move left"
+                                                                >
+                                                                    <ArrowLeft size={14} />
+                                                                </button>
+                                                                {!isCover && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => { e.stopPropagation(); setCoverImage(index); }}
+                                                                        className="p-1.5 bg-orange-500/20 hover:bg-orange-500/40 rounded-full text-orange-400 transition-all"
+                                                                        title="Set as cover"
+                                                                    >
+                                                                        <Crown size={14} />
+                                                                    </button>
+                                                                )}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => { e.stopPropagation(); moveImage(index, index + 1); }}
+                                                                    disabled={index === editingProject.images.length - 1}
+                                                                    className="p-1.5 bg-white/10 hover:bg-white/20 rounded-full text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                                                                    title="Move right"
+                                                                >
+                                                                    <ArrowRight size={14} />
+                                                                </button>
+                                                            </div>
+                                                            {/* View & Delete */}
+                                                            <div className="flex items-center gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => { e.stopPropagation(); setGalleryIndex(index); setGalleryOpen(true); }}
+                                                                    className="p-1.5 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all"
+                                                                    title="Preview"
+                                                                >
+                                                                    <Eye size={14} />
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => { e.stopPropagation(); removeImage(index); }}
+                                                                    className="p-1.5 bg-red-500/20 hover:bg-red-500/40 rounded-full text-red-400 transition-all"
+                                                                    title="Remove"
+                                                                >
+                                                                    <Trash2 size={14} />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        {meta && (
+                                                            <div className="absolute bottom-0 inset-x-0 bg-black/80 backdrop-blur-sm px-2 py-1 flex items-center justify-between z-10">
+                                                                <span className="text-[9px] font-mono text-gray-400">
+                                                                    {formatBytes(meta.originalSize)} → <span className="text-cyan-400">{formatBytes(meta.optimizedSize)}</span>
+                                                                </span>
+                                                                {saved > 0 && (
+                                                                    <span className="text-[8px] font-mono font-bold text-green-400 bg-green-500/10 border border-green-500/20 px-1 py-0.5 rounded">-{savedPct}%</span>
+                                                                )}
+                                                            </div>
                                                         )}
-                                                    </p>
-                                                    <p className="text-[11px] text-white/30">PNG, JPG, WEBP up to 10MB</p>
-                                                </>
-                                            )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        <div className="mt-4">
+                                            <MediaOptimizer
+                                                type="image"
+                                                onUploadComplete={(urls, _type, meta) => {
+                                                    setEditingProject(prev => prev ? { ...prev, images: [...prev.images, ...urls] } : null);
+                                                    setMediaMeta(prev => {
+                                                        const next = { ...prev };
+                                                        meta.forEach(m => { next[m.url] = m; });
+                                                        return next;
+                                                    });
+                                                }}
+                                            />
                                         </div>
                                     </div>
 
-                                    {/* Image Preview Grid */}
-                                    {editingProject.images.length > 0 && (
-                                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 md:gap-3">
-                                            {editingProject.images.map((img, idx) => (
-                                                <div
-                                                    key={idx}
-                                                    className="relative group/img aspect-square rounded-lg overflow-hidden border border-white/10 bg-black/30"
-                                                >
-                                                    <img
-                                                        src={img}
-                                                        alt={`Project image ${idx + 1}`}
-                                                        className="w-full h-full object-cover transition-transform duration-300 group-hover/img:scale-105"
-                                                        onError={(e) => e.currentTarget.src = "https://placehold.co/200x200/1a1a1a/555?text=Error"}
-                                                    />
-
-                                                    {/* Hover Overlay */}
-                                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 transition-all duration-200 flex items-center justify-center gap-1.5">
-                                                        {/* Preview Button */}
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => { e.stopPropagation(); setPreviewImage(img); }}
-                                                            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
-                                                        >
-                                                            <Eye className="w-4 h-4" />
-                                                        </button>
-
-                                                        {/* Delete Button */}
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => { e.stopPropagation(); removeImage(idx); }}
-                                                            className="w-8 h-8 rounded-lg bg-red-500/20 hover:bg-red-500/40 flex items-center justify-center text-red-400 hover:text-red-300 transition-colors"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-
-                                                    {/* Index Badge */}
-                                                    {idx === 0 && (
-                                                        <div className="absolute top-1 left-1 bg-cyan-500/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
-                                                            COVER
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))}
+                                    {/* Videos */}
+                                    <div className="space-y-4 pt-6 mt-2 border-t border-white/5">
+                                        <div className="flex items-center justify-between">
+                                            <Label className="text-cyan-400 text-xs uppercase tracking-wider flex items-center gap-2 font-bold">
+                                                <Film className="w-4 h-4" />
+                                                Project Videos
+                                            </Label>
+                                            <span className="text-[10px] text-white/30 font-mono">{(editingProject.videos?.length || 0)} files</span>
                                         </div>
-                                    )}
 
-                                    {/* Manual URL Entry */}
-                                    <div className="flex gap-2">
-                                        <Input
-                                            placeholder="Or paste image URL..."
-                                            className="bg-black/40 border-white/10 focus:border-cyan-500/50 text-sm"
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                    const val = (e.target as HTMLInputElement).value.trim();
-                                                    if (val) {
-                                                        setEditingProject({
-                                                            ...editingProject,
-                                                            images: [...editingProject.images, val]
-                                                        });
-                                                        (e.target as HTMLInputElement).value = '';
-                                                    }
-                                                }
-                                            }}
-                                        />
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {editingProject.videos?.map((video, index) => {
+                                                const meta = mediaMeta[video];
+                                                const saved = meta ? meta.originalSize - meta.optimizedSize : 0;
+                                                const savedPct = meta && meta.originalSize > 0 ? Math.round((saved / meta.originalSize) * 100) : 0;
+                                                return (
+                                                    <div key={index} className="relative aspect-video rounded-lg overflow-hidden group border border-white/10 bg-black">
+                                                        <video src={video} className="w-full h-full object-cover" controls />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setEditingProject(prev => prev ? { ...prev, videos: prev.videos.filter((_, i) => i !== index) } : null)}
+                                                            className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/80"
+                                                        >
+                                                            <X size={14} />
+                                                        </button>
+                                                        {meta && (
+                                                            <div className="absolute bottom-0 inset-x-0 bg-black/80 backdrop-blur-sm px-2 py-1.5 flex items-center justify-between z-10">
+                                                                <span className="text-[10px] font-mono text-gray-400">
+                                                                    {formatBytes(meta.originalSize)} → <span className="text-cyan-400">{formatBytes(meta.optimizedSize)}</span>
+                                                                </span>
+                                                                {saved > 0 && (
+                                                                    <span className="text-[9px] font-mono font-bold text-green-400 bg-green-500/10 border border-green-500/20 px-1.5 py-0.5 rounded">-{savedPct}%</span>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        <div className="mt-4">
+                                            <MediaOptimizer
+                                                type="video"
+                                                onUploadComplete={(urls, _type, meta) => {
+                                                    setEditingProject(prev => prev ? { ...prev, videos: [...(prev.videos || []), ...urls] } : null);
+                                                    setMediaMeta(prev => {
+                                                        const next = { ...prev };
+                                                        meta.forEach(m => { next[m.url] = m; });
+                                                        return next;
+                                                    });
+                                                }}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
+
 
                                 {/* ─── Section 3: Tech Stack ─── */}
                                 <div className="space-y-2">
@@ -730,7 +1042,52 @@ export const ProjectsAdmin = () => {
                     </div>
                 </DialogContent>
             </Dialog>
-        </div>
+
+            {/* ─── Fullscreen Image Gallery (CardStack) ─── */}
+            <Dialog open={galleryOpen} onOpenChange={setGalleryOpen}>
+                <DialogPortal>
+                    <DialogOverlay className="z-[9999]" />
+                    <DialogPrimitive.Content
+                        className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-xl p-0 overflow-hidden focus:outline-none"
+                    >
+                        <DialogTitle className="sr-only">Image Gallery</DialogTitle>
+                        <div className="relative w-full h-full flex items-center justify-center">
+                            {editingProject && editingProject.images.length > 0 && (
+                                <div className="w-full max-w-5xl px-4">
+                                    <CardStack
+                                        items={editingProject.images.map((img, i) => ({
+                                            id: i,
+                                            title: `Image ${i + 1}`,
+                                            imageSrc: img,
+                                        } as CardStackItem))}
+                                        initialIndex={galleryIndex}
+                                        cardWidth={600}
+                                        cardHeight={380}
+                                        overlap={0.5}
+                                        spreadDeg={40}
+                                        showDots
+                                        loop
+                                    />
+                                </div>
+                            )}
+
+                            {/* Close button */}
+                            <button
+                                onClick={() => setGalleryOpen(false)}
+                                className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-white border border-white/10 transition-all z-10"
+                            >
+                                <X size={20} />
+                            </button>
+
+                            {/* ESC hint */}
+                            <span className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/30 text-xs font-mono">
+                                ESC to close · ← → to navigate · drag to swipe
+                            </span>
+                        </div>
+                    </DialogPrimitive.Content>
+                </DialogPortal>
+            </Dialog>
+        </div >
     );
 };
 

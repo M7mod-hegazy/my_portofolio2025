@@ -29,11 +29,13 @@ export function createApiServer() {
         title: { type: String, required: true },
         description: { type: String, required: true },
         images: [String],
+        videos: [String],
         technologies: [String],
         category: { type: String, required: true },
         liveUrl: String,
         githubUrl: String,
         featured: { type: Boolean, default: false },
+        order: { type: Number, default: 0 },
         createdAt: { type: Date, default: Date.now },
         updatedAt: { type: Date, default: Date.now }
     });
@@ -41,8 +43,12 @@ export function createApiServer() {
 
     const CertificationSchema = new mongoose.Schema({
         title: { type: String, required: true },
-        issuer: { type: String, required: true },
+        issuer: String,
+        category: String,
         date: String,
+        startDate: String,
+        endDate: String,
+        courseHours: String,
         credentialId: String,
         verificationUrl: String,
         image: String,
@@ -197,7 +203,7 @@ export function createApiServer() {
     // Projects
     app.get('/projects', async (req: Request, res: Response) => {
         try {
-            const projects = await Project.find().sort({ createdAt: -1 });
+            const projects = await Project.find().sort({ order: 1, createdAt: -1 });
             res.status(200).json({ success: true, data: projects });
         } catch (error) {
             res.status(400).json({ success: false, error: (error as Error).message });
@@ -206,8 +212,30 @@ export function createApiServer() {
 
     app.post('/projects', async (req: Request, res: Response) => {
         try {
-            const project = await Project.create(req.body);
+            const count = await Project.countDocuments();
+            const project = await Project.create({ ...req.body, order: count });
             res.status(201).json({ success: true, data: project });
+        } catch (error) {
+            res.status(400).json({ success: false, error: (error as Error).message });
+        }
+    });
+
+    app.post('/projects/reorder', async (req: Request, res: Response) => {
+        try {
+            const { items } = req.body; // Array of { id, order }
+            if (!items || !Array.isArray(items)) {
+                return res.status(400).json({ success: false, error: 'Items array required' });
+            }
+
+            const bulkOps = items.map((item: { id: string; order: number }) => ({
+                updateOne: {
+                    filter: { _id: item.id },
+                    update: { $set: { order: item.order } }
+                }
+            }));
+
+            await Project.bulkWrite(bulkOps);
+            res.status(200).json({ success: true, message: 'Order updated' });
         } catch (error) {
             res.status(400).json({ success: false, error: (error as Error).message });
         }
@@ -505,6 +533,40 @@ export function createApiServer() {
         }
     });
 
+    app.post('/categories', async (req: Request, res: Response) => {
+        try {
+            const category = await Category.create(req.body);
+            res.status(201).json({ success: true, data: category });
+        } catch (error) {
+            res.status(400).json({ success: false, error: (error as Error).message });
+        }
+    });
+
+    app.put('/categories', async (req: Request, res: Response) => {
+        try {
+            const { id } = req.query;
+            if (!id) return res.status(400).json({ success: false, error: 'ID required' });
+
+            const category = await Category.findByIdAndUpdate(id, req.body, { new: true });
+            if (!category) return res.status(404).json({ success: false, error: 'Category not found' });
+
+            res.status(200).json({ success: true, data: category });
+        } catch (error) {
+            res.status(400).json({ success: false, error: (error as Error).message });
+        }
+    });
+
+    app.delete('/categories', async (req: Request, res: Response) => {
+        try {
+            const { id } = req.query;
+            if (!id) return res.status(400).json({ success: false, error: 'ID required' });
+            await Category.findByIdAndDelete(id);
+            res.status(200).json({ success: true, data: {} });
+        } catch (error) {
+            res.status(400).json({ success: false, error: (error as Error).message });
+        }
+    });
+
     // Config
     app.get('/config', (req: Request, res: Response) => {
         res.status(200).json({
@@ -525,7 +587,7 @@ export function createApiServer() {
     const storage = multer.memoryStorage();
     const uploadMiddleware = multer({
         storage,
-        limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+        limits: { fileSize: 100 * 1024 * 1024 } // 100MB (supports video uploads)
     });
 
     app.post('/upload', uploadMiddleware.array('files', 10), async (req: Request, res: Response) => {
@@ -548,23 +610,44 @@ export function createApiServer() {
 
             const uploadPromises = files.map(file => {
                 return new Promise((resolve, reject) => {
+                    const isVideo = file.mimetype.startsWith('video/');
                     const uploadStream = cloudinary.uploader.upload_stream(
                         {
                             resource_type: 'auto',
                             folder: 'portfolio',
+                            timeout: 300000, // 5 min timeout for large files
+                            ...(isVideo
+                                ? {
+                                    // Video: quality compression only (no resize during upload to avoid timeout)
+                                    quality: 'auto:low',
+                                    chunk_size: 6000000, // 6MB chunks for large videos
+                                }
+                                : {
+                                    // Image: aggressive compression + auto format (WebP/AVIF)
+                                    quality: 65,
+                                    fetch_format: 'auto',
+                                    width: 1920,
+                                    height: 1080,
+                                    crop: 'limit',
+                                }
+                            ),
                         },
                         (error, result) => {
                             if (error) {
                                 console.error('Cloudinary upload error:', error);
                                 reject(error);
                             } else {
-                                console.log('Upload success:', result?.secure_url);
+                                console.log('Upload success:', result?.secure_url, `(${file.size} → ${result?.bytes})`);
                                 resolve({
                                     originalName: file.originalname,
                                     url: result?.secure_url,
                                     publicId: result?.public_id,
                                     format: result?.format,
-                                    size: result?.bytes,
+                                    resource_type: result?.resource_type,
+                                    originalSize: file.size,       // Original file size from multer
+                                    size: result?.bytes,           // Optimized size from Cloudinary
+                                    width: result?.width,
+                                    height: result?.height
                                 });
                             }
                         }

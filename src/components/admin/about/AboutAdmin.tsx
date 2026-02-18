@@ -299,40 +299,98 @@ export const AboutAdmin = () => {
 
             {/* EXTRAS TAB */}
             {activeTab === 'extras' && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Stats */}
-                    <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-                        <div className="flex justify-between items-center mb-4">
-                            <Label className="text-cyan-400 text-xs uppercase tracking-wider">Statistics</Label>
-                            <Button size="sm" variant="ghost" onClick={addStat} className="text-cyan-400"><Plus size={16} className="mr-1" />Add</Button>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Stats Section */}
+                    <div className="bg-white/5 rounded-2xl p-6 border border-white/10 h-fit">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <Label className="text-cyan-400 text-xs uppercase tracking-wider flex items-center gap-2">
+                                    <Target size={14} /> Statistics
+                                </Label>
+                                <p className="text-gray-500 text-xs mt-1">Key metrics shown on your profile</p>
+                            </div>
+                            <Button size="sm" onClick={addStat} className="bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/50">
+                                <Plus size={16} className="mr-2" /> Add Stat
+                            </Button>
                         </div>
-                        <div className="space-y-3">
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {data.stats.length === 0 ? (
-                                <p className="text-gray-500 text-sm text-center py-4">No stats yet. Add some!</p>
+                                <div className="col-span-full py-8 text-center border-2 border-dashed border-white/10 rounded-xl">
+                                    <p className="text-gray-500 text-sm">No statistics added yet.</p>
+                                </div>
                             ) : data.stats.map((stat, i) => (
-                                <div key={i} className="flex gap-2 items-center bg-black/30 p-3 rounded-lg border border-white/5">
-                                    <Input value={stat.value} onChange={e => updateStat(i, 'value', e.target.value)} className="w-24 bg-transparent border-none font-bold text-right" placeholder="50+" />
-                                    <Input value={stat.label} onChange={e => updateStat(i, 'label', e.target.value)} className="flex-1 bg-transparent border-none text-gray-400" placeholder="Projects" />
-                                    <Button size="icon" variant="ghost" onClick={() => removeStat(i)} className="text-red-400"><Trash2 size={14} /></Button>
+                                <div key={i} className="bg-black/40 p-4 rounded-xl border border-white/5 relative group hover:border-cyan-500/30 transition-colors">
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        onClick={() => removeStat(i)}
+                                        className="absolute top-2 right-2 text-white/20 hover:text-red-400 hover:bg-red-500/20 w-6 h-6 z-10"
+                                    >
+                                        <Trash2 size={12} />
+                                    </Button>
+
+                                    <div className="space-y-3">
+                                        <div>
+                                            <Label className="text-[10px] text-gray-500 uppercase">Value</Label>
+                                            <Input
+                                                value={stat.value}
+                                                onChange={e => updateStat(i, 'value', e.target.value)}
+                                                className="bg-black/50 border-white/10 font-bold text-lg text-white"
+                                                placeholder="5+"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label className="text-[10px] text-gray-500 uppercase">Label</Label>
+                                            <Input
+                                                value={stat.label}
+                                                onChange={e => updateStat(i, 'label', e.target.value)}
+                                                className="bg-black/50 border-white/10 text-sm"
+                                                placeholder="Years Exp."
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    {/* Passions */}
-                    <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-                        <div className="flex justify-between items-center mb-4">
-                            <Label className="text-cyan-400 text-xs uppercase tracking-wider flex items-center gap-2"><Heart size={14} />Passions</Label>
-                            <Button size="sm" variant="ghost" onClick={addPassion} className="text-cyan-400"><Plus size={16} className="mr-1" />Add</Button>
+                    {/* Passions Section */}
+                    <div className="bg-white/5 rounded-2xl p-6 border border-white/10 h-fit">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <Label className="text-purple-400 text-xs uppercase tracking-wider flex items-center gap-2">
+                                    <Heart size={14} /> Passions
+                                </Label>
+                                <p className="text-gray-500 text-xs mt-1">Technologies & topics you love</p>
+                            </div>
+                            <Button size="sm" onClick={addPassion} className="bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 border border-purple-500/50">
+                                <Plus size={16} className="mr-2" /> Add Passion
+                            </Button>
                         </div>
-                        <div className="space-y-3">
+
+                        <div className="space-y-4">
                             {data.passions.length === 0 ? (
-                                <p className="text-gray-500 text-sm text-center py-4">No passions added yet.</p>
+                                <div className="py-8 text-center border-2 border-dashed border-white/10 rounded-xl">
+                                    <p className="text-gray-500 text-sm">No passions added yet.</p>
+                                </div>
                             ) : data.passions.map((passion, i) => (
-                                <div key={i} className="flex gap-2 items-center bg-black/30 p-3 rounded-lg border border-white/5">
-                                    <IconPicker value={passion.icon} onChange={(icon) => updatePassion(i, 'icon', icon)} />
-                                    <Input value={passion.label} onChange={e => updatePassion(i, 'label', e.target.value)} className="flex-1 bg-transparent border-none text-gray-400" placeholder="Clean Code" />
-                                    <Button size="icon" variant="ghost" onClick={() => removePassion(i)} className="text-red-400"><Trash2 size={14} /></Button>
+                                <div key={i} className="flex gap-4 items-center bg-black/40 p-4 rounded-xl border border-white/5 hover:border-purple-500/30 transition-colors">
+                                    <div className="shrink-0">
+                                        <IconPicker value={passion.icon} onChange={(icon) => updatePassion(i, 'icon', icon)} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <Label className="text-[10px] text-gray-500 uppercase mb-1 block">Label</Label>
+                                        <Input
+                                            value={passion.label}
+                                            onChange={e => updatePassion(i, 'label', e.target.value)}
+                                            className="bg-black/50 border-white/10"
+                                            placeholder="e.g. Clean Code"
+                                        />
+                                    </div>
+                                    <Button size="icon" variant="ghost" onClick={() => removePassion(i)} className="text-white/20 hover:text-red-400 hover:bg-red-500/20 shrink-0">
+                                        <Trash2 size={16} />
+                                    </Button>
                                 </div>
                             ))}
                         </div>

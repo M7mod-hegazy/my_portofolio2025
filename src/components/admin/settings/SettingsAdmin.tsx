@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Save, FileText, Globe, Mail, Phone, MapPin, Linkedin, Github, Twitter, Facebook, Instagram, MessageCircle } from "lucide-react";
+import { Save, FileText, Globe, Mail, Phone, MapPin, Linkedin, Github, Twitter, Facebook, Instagram, MessageCircle, Upload, Trash2 } from "lucide-react";
 import { AdminLoader } from "../AdminLoader";
 
 interface ContactDB {
@@ -78,6 +78,7 @@ export const SettingsAdmin = () => {
     };
 
     const handleSaveCV = async (url: string) => {
+        console.log("[DEBUG] handleSaveCV called with URL:", url);
         try {
             const res = await fetch('/api/cv', {
                 method: 'POST',
@@ -196,21 +197,15 @@ export const SettingsAdmin = () => {
                             </p>
                         </div>
 
+                        {/* Drag & Drop Upload Area */}
                         <div className="max-w-xl mx-auto space-y-4">
-                            <div className="flex gap-2">
-                                <Input
-                                    placeholder="Paste URL to PDF (Cloudinary, Drive, etc.)"
-                                    value={cv?.url || ""}
-                                    onChange={e => setCv(cv ? { ...cv, url: e.target.value } : { url: e.target.value, updatedAt: new Date().toISOString() })}
-                                    className="bg-black/50 border-white/10 text-white"
-                                />
-                                <Button onClick={() => cv && handleSaveCV(cv.url)} variant="outline" className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10">
-                                    Update
-                                </Button>
-                            </div>
-                            <p className="text-xs text-gray-500">
-                                Currently using direct URL. Future update will support drag-and-drop upload.
-                            </p>
+                            <CVUploadArea
+                                currentUrl={cv?.url || ""}
+                                onUpload={(url) => {
+                                    setCv(prev => prev ? { ...prev, url } : { url, updatedAt: new Date().toISOString() });
+                                    handleSaveCV(url);
+                                }}
+                            />
 
                             {cv?.updatedAt && (
                                 <p className="text-sm text-gray-400 pt-4 border-t border-white/10">
@@ -224,3 +219,195 @@ export const SettingsAdmin = () => {
         </div>
     );
 };
+
+// ─── Sub-Components ──────────────────────────────────────────────────
+
+function CVUploadArea({ currentUrl, onUpload }: { currentUrl: string, onUpload: (url: string) => void }) {
+    const [isDragOver, setIsDragOver] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const [inputType, setInputType] = useState<'upload' | 'link'>('upload');
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // If we have a URL, determine if it looks like a filename, stripping timestamp prefix
+    const rawFileName = currentUrl ? currentUrl.split('/').pop() || "" : "No file selected";
+    const fileName = rawFileName.replace(/^\d+_/, '');
+    const isPdf = currentUrl?.toLowerCase().endsWith('.pdf');
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(false);
+    };
+
+    const handleDrop = async (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(false);
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length > 0) handleFileUpload(files[0]);
+    };
+
+    const handleFileUpload = async (file: File) => {
+        console.log("[DEBUG] Uploading file:", file.name);
+        setIsUploading(true);
+        const formData = new FormData();
+        formData.append('files', file); // API expects 'files'
+
+        try {
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (res.ok) {
+                const result = await res.json();
+                // Expecting { data: [{ url: "..." }] }
+                if (result.data && result.data.length > 0) {
+                    const newUrl = result.data[0].url;
+                    onUpload(newUrl);
+                    toast.success("CV uploaded successfully");
+                }
+            } else {
+                toast.error("Upload failed");
+            }
+        } catch (err) {
+            toast.error("Error uploading file");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    // If a URL is already set, show the "File Card" state
+    if (currentUrl && inputType === 'upload') {
+        return (
+            <div className="relative group p-6 border border-white/10 bg-white/5 rounded-xl flex items-center gap-4 transition-all hover:border-purple-500/30">
+                <div className="w-12 h-12 bg-black/50 rounded-lg flex items-center justify-center border border-white/10">
+                    <FileText className="text-purple-400" />
+                </div>
+                <div className="flex-1 text-left min-w-0">
+                    <p className="text-sm font-medium text-white truncate max-w-[200px] sm:max-w-[300px]">
+                        {fileName}
+                    </p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mt-0.5">
+                        {isPdf ? "PDF Document" : "External Link"}
+                    </p>
+                </div>
+                <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => window.open(currentUrl, '_blank')} className="hover:bg-white/10">
+                        View
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => {
+                        console.log("[DEBUG] Delete CV Action triggered");
+                        onUpload("");
+                        toast.success("CV removed");
+                    }} className="bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/50">
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                    </Button>
+                </div>
+                <div className="absolute top-2 right-2 text-[10px] text-gray-600 cursor-pointer hover:text-purple-400" onClick={() => setInputType('link')}>
+                    Switch to URL Mode
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-4">
+            <div className="flex justify-center gap-4 mb-4">
+                <button
+                    onClick={() => setInputType('upload')}
+                    className={`text-sm pb-1 border-b-2 transition-colors ${inputType === 'upload' ? 'border-purple-500 text-white' : 'border-transparent text-gray-500 hover:text-white'}`}
+                >
+                    File Upload
+                </button>
+                <button
+                    onClick={() => setInputType('link')}
+                    className={`text-sm pb-1 border-b-2 transition-colors ${inputType === 'link' ? 'border-purple-500 text-white' : 'border-transparent text-gray-500 hover:text-white'}`}
+                >
+                    Direct Link
+                </button>
+            </div>
+
+            {inputType === 'upload' ? (
+                <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`
+                        relative cursor-pointer rounded-xl border-2 border-dashed transition-all duration-300 py-10
+                        ${isDragOver
+                            ? "border-purple-400 bg-purple-500/10 shadow-[0_0_30px_rgba(168,85,247,0.15)]"
+                            : "border-white/15 bg-white/[0.02] hover:border-white/30 hover:bg-white/[0.04]"
+                        }
+                        ${isUploading ? "pointer-events-none opacity-60" : ""}
+                    `}
+                >
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="hidden"
+                        onChange={(e) => {
+                            if (e.target.files?.[0]) handleFileUpload(e.target.files[0]);
+                        }}
+                    />
+
+                    <div className="flex flex-col items-center justify-center text-center space-y-3">
+                        {isUploading ? (
+                            <div className="flex flex-col items-center">
+                                <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mb-2" />
+                                <span className="text-purple-400 text-sm">Uploading...</span>
+                            </div>
+                        ) : (
+                            <>
+                                <div className={`p-3 rounded-full bg-white/5 ${isDragOver ? 'scale-110' : ''} transition-transform`}>
+                                    <Upload className="w-6 h-6 text-gray-400" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-white/80">
+                                        Click to upload or drag and drop
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        PDF, DOCX up to 10MB
+                                    </p>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            ) : (
+                <div className="flex gap-2">
+                    <Input
+                        placeholder="Paste direct URL to PDF..."
+                        defaultValue={currentUrl} // Use defaultValue to allow type editing
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                // Manual override
+                                onUpload((e.target as HTMLInputElement).value);
+                                toast.success("URL updated manually");
+                            }
+                        }}
+                        className="bg-black/50 border-white/10 text-white"
+                    />
+                    <Button onClick={(e) => {
+                        // Find the sibling input
+                        const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
+                        onUpload(input.value);
+                        toast.success("URL updated manually");
+                    }} variant="outline" className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10">
+                        Set URL
+                    </Button>
+                </div>
+            )}
+        </div>
+    );
+};
+

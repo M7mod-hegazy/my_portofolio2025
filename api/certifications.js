@@ -20,8 +20,9 @@ let Certification;
 try {
   mongoose.connect(process.env.MONGO_URI);
   const CertificationSchema = new mongoose.Schema({
-    title: String, issuer: String, date: String, credentialId: String,
-    verificationUrl: String, image: String,
+    title: String, issuer: String, category: String, date: String,
+    startDate: String, endDate: String, courseHours: String,
+    credentialId: String, verificationUrl: String, image: String,
   });
   Certification = mongoose.models.Certification || mongoose.model('Certification', CertificationSchema);
 } catch (error) {

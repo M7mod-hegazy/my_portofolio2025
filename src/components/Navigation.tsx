@@ -33,6 +33,9 @@ export const Navigation = () => {
     // INSTANT FEEDBACK: Set the theme/active section immediately upon click
     setCurrentSection(sectionId);
 
+    // Notify detection hook to pause updates during scroll
+    window.dispatchEvent(new Event('manual-scroll-start'));
+
     const element = document.getElementById(sectionId);
     if (element) {
       element.scrollIntoView({ behavior: "smooth" });

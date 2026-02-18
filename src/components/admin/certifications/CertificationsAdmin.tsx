@@ -23,13 +23,18 @@ interface CertificationDB {
     _id?: string;
     title: string;
     issuer: string;
-    date: string;
-    credentialId: string;
-    verificationUrl: string;
+    category?: string;
+    date?: string;
+    startDate?: string;
+    endDate?: string;
+    courseHours?: string;
+    credentialId?: string;
+    verificationUrl?: string;
     image: string;
 }
 
 const ISSUERS_SUGGESTIONS = ["Coursera", "Udemy", "edX", "Google", "AWS", "Microsoft", "Meta", "IBM", "DeepLearning.AI", "Hackerrank"];
+const CATEGORY_SUGGESTIONS = ["Web Development", "Data Science", "Machine Learning", "Cloud Computing", "Cybersecurity", "Digital Marketing", "UI/UX Design", "DevOps", "Mobile Development", "Networking"];
 
 export const CertificationsAdmin = () => {
     // Data State
@@ -142,7 +147,10 @@ export const CertificationsAdmin = () => {
         setEditingCert({
             title: "",
             issuer: "",
-            date: new Date().toISOString().split('T')[0],
+            category: "",
+            startDate: "",
+            endDate: "",
+            courseHours: "",
             credentialId: "",
             verificationUrl: "",
             image: ""
@@ -354,7 +362,7 @@ export const CertificationsAdmin = () => {
                                             required
                                         />
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <Label className="text-yellow-400 text-xs uppercase tracking-wider">Issuer</Label>
                                             <Input
@@ -362,7 +370,6 @@ export const CertificationsAdmin = () => {
                                                 onChange={e => setEditingCert({ ...editingCert, issuer: e.target.value })}
                                                 className="bg-black/40 border-white/10 focus:border-yellow-500/50"
                                                 placeholder="e.g. Amazon Web Services"
-                                                required
                                                 list="issuers"
                                             />
                                             <datalist id="issuers">
@@ -370,12 +377,47 @@ export const CertificationsAdmin = () => {
                                             </datalist>
                                         </div>
                                         <div className="space-y-2">
-                                            <Label className="text-yellow-400 text-xs uppercase tracking-wider">Date Issued</Label>
+                                            <Label className="text-yellow-400 text-xs uppercase tracking-wider">Category</Label>
+                                            <Input
+                                                value={editingCert.category || ""}
+                                                onChange={e => setEditingCert({ ...editingCert, category: e.target.value })}
+                                                className="bg-black/40 border-white/10 focus:border-yellow-500/50"
+                                                placeholder="e.g. Web Development"
+                                                list="categories"
+                                            />
+                                            <datalist id="categories">
+                                                {CATEGORY_SUGGESTIONS.map(c => <option key={c} value={c} />)}
+                                            </datalist>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-yellow-400 text-xs uppercase tracking-wider">Start Date</Label>
                                             <Input
                                                 type="date"
-                                                value={editingCert.date}
-                                                onChange={e => setEditingCert({ ...editingCert, date: e.target.value })}
+                                                value={editingCert.startDate || ""}
+                                                onChange={e => setEditingCert({ ...editingCert, startDate: e.target.value })}
                                                 className="bg-black/40 border-white/10 focus:border-yellow-500/50"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-yellow-400 text-xs uppercase tracking-wider">End Date</Label>
+                                            <Input
+                                                type="date"
+                                                value={editingCert.endDate || ""}
+                                                onChange={e => setEditingCert({ ...editingCert, endDate: e.target.value })}
+                                                className="bg-black/40 border-white/10 focus:border-yellow-500/50"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-yellow-400 text-xs uppercase tracking-wider">Course Hours</Label>
+                                            <Input
+                                                type="number"
+                                                value={editingCert.courseHours || ""}
+                                                onChange={e => setEditingCert({ ...editingCert, courseHours: e.target.value })}
+                                                className="bg-black/40 border-white/10 focus:border-yellow-500/50"
+                                                placeholder="e.g. 40"
+                                                min="0"
                                             />
                                         </div>
                                     </div>
@@ -504,7 +546,7 @@ function CertCard({ cert, viewMode, onEdit, onDelete }: { cert: CertificationDB,
                 </div>
                 <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-white truncate">{cert.title}</h3>
-                    <p className="text-sm text-gray-400 truncate">{cert.issuer} • {cert.date}</p>
+                    <p className="text-sm text-gray-400 truncate">{[cert.issuer, cert.startDate || cert.date].filter(Boolean).join(' • ')}</p>
                 </div>
                 <div className="flex items-center gap-2">
                     {cert.verificationUrl && (
@@ -585,10 +627,17 @@ function CertCard({ cert, viewMode, onEdit, onDelete }: { cert: CertificationDB,
                     <span>{cert.issuer}</span>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <Calendar className="w-3 h-3" />
-                    <span>{cert.date}</span>
-                </div>
+                {(cert.startDate || cert.endDate || cert.date) && (
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <Calendar className="w-3 h-3" />
+                        <span>{cert.startDate && cert.endDate ? `${cert.startDate} – ${cert.endDate}` : cert.startDate || cert.date}</span>
+                    </div>
+                )}
+                {cert.courseHours && (
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span className="px-1.5 py-0.5 bg-yellow-500/10 text-yellow-400 rounded text-[10px] font-medium">{cert.courseHours}h</span>
+                    </div>
+                )}
 
                 <div className="mt-auto pt-4 flex items-center justify-between border-t border-white/5">
                     {cert.credentialId && (

@@ -1,12 +1,13 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ExternalLink, Github, X, ChevronLeft, ChevronRight, Zap, Users, Calendar, Smartphone, Monitor, Cpu, Code, Terminal, Activity } from "lucide-react";
+import { ExternalLink, Github, X, ChevronLeft, ChevronRight, Zap, Users, Calendar, Smartphone, Monitor, Cpu, Code, Terminal, Film, ChevronDown, Activity } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ImageSwiper } from "@/components/ui/image-swiper";
+import { ThumbnailCarousel, CarouselItem } from "@/components/ui/thumbnail-carousel";
 import { LiquidEffectAnimation } from "@/components/ui/liquid-effect-animation";
+import { useModal } from "@/context/ModalContext";
 
 interface Project {
   _id: string;
@@ -14,6 +15,7 @@ interface Project {
   description: string;
   longDescription?: string;
   images: string[];
+  videos?: string[];
   technologies: string[];
   features?: string[];
   category: string;
@@ -28,7 +30,13 @@ interface Project {
 export const ProjectsSection = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeProject, setActiveProject] = useState<Project | null>(null);
+
+  // Modal Context Integration
+  const { activeProjectId, closeProject, openProject } = useModal();
+  const activeProject = useMemo(() =>
+    projects.find(p => p._id === activeProjectId) || null
+    , [projects, activeProjectId]);
+
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -75,6 +83,8 @@ export const ProjectsSection = () => {
     setCurrentImageIndex(0);
   }, [activeProject]);
 
+
+
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -86,18 +96,6 @@ export const ProjectsSection = () => {
       document.getElementById('projects-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [currentPage]);
-
-  const nextImage = () => {
-    if (activeProject?.images) {
-      setCurrentImageIndex((prev) => (prev + 1) % activeProject.images.length);
-    }
-  };
-
-  const prevImage = () => {
-    if (activeProject?.images) {
-      setCurrentImageIndex((prev) => (prev - 1 + activeProject.images.length) % activeProject.images.length);
-    }
-  };
 
   // Get unique categories
   const categories = ["all", ...new Set(projects.map(p => p.category))];
@@ -258,7 +256,7 @@ export const ProjectsSection = () => {
                   initial={{ opacity: 0, scale: 0.9 }}
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true }}
-                  onClick={() => setActiveProject(project)}
+                  onClick={() => openProject(project._id)}
                   className="relative aspect-[4/3] cursor-pointer group rounded-xl overflow-hidden border border-white/10 bg-gray-900/50 active:scale-[0.98] transition-transform"
                 >
                   {/* Image */}
@@ -308,7 +306,7 @@ export const ProjectsSection = () => {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: index * 0.1 }}
-                  onClick={() => setActiveProject(project)}
+                  onClick={() => openProject(project._id)}
                   className="group relative cursor-pointer"
                 >
                   {/* Card Container - "Sci-Fi Panel" */}
@@ -476,29 +474,71 @@ export const ProjectsSection = () => {
       </div>
 
       {/* Detailed Modal - "System Log" Style */}
-      <Dialog open={!!activeProject} onOpenChange={() => setActiveProject(null)}>
-        <DialogContent className="max-w-6xl w-[95vw] h-[90vh] bg-background border-2 border-orange-500/20 p-0 overflow-hidden flex flex-col md:flex-row shadow-[0_0_50px_rgba(6,182,212,0.1)]">
+      <Dialog open={!!activeProject} onOpenChange={(open) => !open && closeProject()}>
+        <DialogContent className="max-w-6xl w-[95vw] h-[90vh] bg-background border-2 border-orange-500/20 p-0 overflow-y-auto md:overflow-hidden flex flex-col md:flex-row shadow-[0_0_50px_rgba(6,182,212,0.1)]">
           <VisuallyHidden>
             <DialogTitle>Project Details</DialogTitle>
           </VisuallyHidden>
           {activeProject && (
             <>
               {/* Left Side: Visuals with ImageSwiper */}
-              <div className="w-full md:w-2/3 h-1/2 md:h-full relative bg-[#0a0a0a] border-b md:border-b-0 md:border-r border-white/10 flex items-center justify-center">
+              <div className="w-full md:w-2/3 md:h-full relative bg-[#0a0a0a] border-b md:border-b-0 md:border-r border-white/10 flex flex-col md:overflow-y-auto shrink-0">
                 <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.03)_1px,transparent_1px)] bg-[size:20px_20px]" />
 
-                {activeProject.images?.length > 0 && (
-                  <ImageSwiper
-                    images={activeProject.images}
-                    cardWidth={Math.min(400, window.innerWidth * 0.7)}
-                    cardHeight={Math.min(280, window.innerHeight * 0.35)}
-                    className="z-10"
-                  />
-                )}
+                {/* ─── Unified Carousel ─── */}
+                <div className="w-full h-full flex flex-col justify-center p-4">
+                  {(() => {
+                    // Prepare Carousel Items
+                    const isVideoUrl = (url: string) => /\.(mp4|webm|mov|avi|mkv)/i.test(url) || url.includes('/video/');
+                    const videosFromField = activeProject.videos || [];
+                    const videosFromImages = (activeProject.images || []).filter(isVideoUrl);
+                    const allVideos = [...new Set([...videosFromField, ...videosFromImages])];
+                    const pureImages = (activeProject.images || []).filter((url: string) => !isVideoUrl(url));
+
+                    // Helper to get video name
+                    const getVideoName = (url: string, idx: number) => {
+                      try {
+                        const parts = url.split('/');
+                        const raw = parts[parts.length - 1].split('?')[0];
+                        const decoded = decodeURIComponent(raw);
+                        return decoded.length > 30 ? decoded.slice(0, 27) + '...' : decoded;
+                      } catch {
+                        return `Video ${idx + 1}`;
+                      }
+                    };
+
+                    const carouselItems: CarouselItem[] = [
+                      ...allVideos.map((url, i): CarouselItem => ({
+                        id: `video-${i}`,
+                        url,
+                        type: 'video',
+                        title: getVideoName(url, i)
+                      })),
+                      ...pureImages.map((url, i): CarouselItem => ({
+                        id: `image-${i}`,
+                        url,
+                        type: 'image',
+                        title: `${activeProject.title} ${i + 1}`
+                      }))
+                    ];
+
+                    // Fallback for no media
+                    if (carouselItems.length === 0) {
+                      return (
+                        <div className="flex flex-col items-center justify-center h-64 text-muted-foreground/50 border border-dashed border-white/10 rounded-xl">
+                          <Film className="w-12 h-12 mb-2 opacity-20" />
+                          <span className="font-mono text-xs">NO_MEDIA_FOUND</span>
+                        </div>
+                      )
+                    }
+
+                    return <ThumbnailCarousel items={carouselItems} />;
+                  })()}
+                </div>
               </div>
 
               {/* Right Side: Data Log */}
-              <div className="w-full md:w-1/3 h-1/2 md:h-full bg-background flex flex-col">
+              <div className="w-full md:w-1/3 md:h-full bg-background flex flex-col shrink-0">
                 <ScrollArea className="flex-1 p-6 md:p-8">
                   <div className="border-l-2 border-orange-500 pl-4 mb-6">
                     <h2 className="text-2xl md:text-3xl font-black text-foreground mb-1 uppercase leading-tight">{activeProject.title}</h2>

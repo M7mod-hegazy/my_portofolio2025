@@ -19,7 +19,11 @@ interface Category {
     icon: string;
 }
 
-export const CategoryManager = () => {
+interface CategoryManagerProps {
+    categoryType?: "skill" | "project" | "service";
+}
+
+export const CategoryManager = ({ categoryType = "skill" }: CategoryManagerProps) => {
     const [categories, setCategories] = useState<Category[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -27,7 +31,7 @@ export const CategoryManager = () => {
 
     const [formData, setFormData] = useState({
         name: "",
-        type: "skill",
+        type: categoryType,
         description: "",
         color: "#3b82f6",
         icon: "Folder"
@@ -40,7 +44,7 @@ export const CategoryManager = () => {
     const fetchCategories = async () => {
         setIsLoading(true);
         try {
-            const res = await fetch('/api/categories?type=skill');
+            const res = await fetch(`/api/categories?type=${categoryType}`);
             const json = await res.json();
             if (json.success) setCategories(json.data);
         } catch (error) {
@@ -50,42 +54,34 @@ export const CategoryManager = () => {
         }
     };
 
+    const handleEdit = (category: Category) => {
+        setEditingId(category._id);
+        setFormData({
+            name: category.name,
+            type: category.type,
+            description: category.description || "",
+            color: category.color,
+            icon: category.icon
+        });
+    };
+
     const handleSave = async () => {
         if (!formData.name) return toast.error("Name is required");
 
         try {
-            // Since our backend logic for categories is simpler (only Create/Delete fully separated, update logic assumes unique name/type),
-            // we'll stick to basic Create or Re-Create logic if your backend supports update?
-            // Checking server.ts: POST /categories handles creation. DELETE /categories handles deletion.
-            // There is no explicit PUT route in the server.ts provided earlier for Category updates by ID.
-            // We'll treat this as "Delete then Create" for editing or just "Create New".
-            // WAIT: server.ts logic for POST is: checks if exists by name+type. If so, error.
-            // We need to implement a DELETE then CREATE strategy for "Edit" if the backend doesn't support PATCH, 
-            // OR I should update server.ts to support Category Updates? 
-            // For now, let's assume Create Only and Delete Only as per current server.ts.
-            // Actually, I'll update the server.ts later if needed, but the user asked for "Add-Edit-Delete".
-            // I will implement "Delete then Create" safely or add PUT support if I modify server.ts.
-            // Let's modify server.ts is safer. But asking user approval for backend change? 
-            // The prompt says "do it" for admin side. I'll stick to frontend logic for now. 
-            // I'll stick to Create/Delete for now.
+            const method = editingId ? 'PUT' : 'POST';
+            const url = editingId ? `/api/categories?id=${editingId}` : '/api/categories';
 
-            // Checking server.ts again... it has POST (create) and DELETE. No PUT.
-            // I will implement Create and Delete. Editing will just be "Delete old one, create new one" 
-            // OR I can quickly patch server.ts. Let's patch server.ts for full CRUD if needed, 
-            // but simpler is to support Add/Delete first.
-
-            // Actually, let's just make a POST.
-
-            const res = await fetch('/api/categories', {
-                method: 'POST',
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
             const json = await res.json();
 
             if (json.success) {
-                toast.success("Category saved");
-                setFormData({ name: "", type: "skill", description: "", color: "#3b82f6", icon: "Folder" });
+                toast.success(editingId ? "Category updated" : "Category saved");
+                setFormData({ name: "", type: categoryType, description: "", color: "#3b82f6", icon: "Folder" });
                 setEditingId(null);
                 fetchCategories();
             } else {
@@ -104,6 +100,10 @@ export const CategoryManager = () => {
             if (json.success) {
                 toast.success("Category deleted");
                 fetchCategories();
+                if (editingId === id) {
+                    setEditingId(null);
+                    setFormData({ name: "", type: categoryType, description: "", color: "#3b82f6", icon: "Folder" });
+                }
             } else {
                 toast.error(json.error);
             }
@@ -115,9 +115,9 @@ export const CategoryManager = () => {
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 border-white/10 bg-white/5 hover:bg-white/10 text-xs gap-2">
-                    <Folder size={14} /> Manage Categories
-                </Button>
+                <NeonButton variant="secondary" icon={<Folder size={14} />} className="hidden md:flex">
+                    Manage Categories
+                </NeonButton>
             </DialogTrigger>
             <DialogContent className="max-w-2xl bg-[#0a0a0a] border-white/10 text-white p-0 overflow-hidden">
                 <div className="flex h-[500px]">
@@ -128,24 +128,42 @@ export const CategoryManager = () => {
                         </DialogHeader>
                         <div className="space-y-2 overflow-y-auto flex-1 custom-scrollbar">
                             {categories.map(cat => (
-                                <div key={cat._id} className="group flex items-center justify-between p-2 rounded hover:bg-white/5 border border-transparent hover:border-white/5 transition-all text-sm">
+                                <div
+                                    key={cat._id}
+                                    onClick={() => handleEdit(cat)}
+                                    className={`group flex items-center justify-between p-2 rounded cursor-pointer transition-all text-sm border ${editingId === cat._id ? "bg-white/10 border-cyan-500/50" : "hover:bg-white/5 border-transparent hover:border-white/5"}`}
+                                >
                                     <div className="flex items-center gap-2 overflow-hidden">
                                         <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
                                         <span className="truncate">{cat.name}</span>
                                     </div>
-                                    <button onClick={() => handleDelete(cat._id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity">
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleDelete(cat._id); }}
+                                        className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity"
+                                    >
                                         <Trash2 size={12} />
                                     </button>
                                 </div>
                             ))}
                         </div>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-xs text-gray-400 hover:text-white"
+                            onClick={() => {
+                                setEditingId(null);
+                                setFormData({ name: "", type: categoryType, description: "", color: "#3b82f6", icon: "Folder" });
+                            }}
+                        >
+                            <Plus size={12} className="mr-2" /> New Category
+                        </Button>
                     </div>
 
                     {/* Right: Form */}
                     <div className="w-2/3 p-6 space-y-6">
                         <div className="space-y-1">
-                            <h3 className="font-bold text-lg">Add New Category</h3>
-                            <p className="text-xs text-gray-400">Define a new classification for your skills.</p>
+                            <h3 className="font-bold text-lg">{editingId ? "Edit Category" : "Add New Category"}</h3>
+                            <p className="text-xs text-gray-400">{editingId ? "Update existing classification." : "Define a new classification for your skills."}</p>
                         </div>
 
                         <div className="space-y-4">
@@ -192,8 +210,22 @@ export const CategoryManager = () => {
                                 />
                             </div>
 
-                            <div className="pt-4 flex justify-end">
-                                <NeonButton onClick={handleSave} icon={<Plus size={14} />}>Create Category</NeonButton>
+                            <div className="pt-4 flex justify-end gap-2">
+                                {editingId && (
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => {
+                                            setEditingId(null);
+                                            setFormData({ name: "", type: categoryType, description: "", color: "#3b82f6", icon: "Folder" });
+                                        }}
+                                    >
+                                        Cancel
+                                    </Button>
+                                )}
+                                <NeonButton onClick={handleSave} icon={editingId ? <Edit2 size={14} /> : <Plus size={14} />}>
+                                    {editingId ? "Update Category" : "Create Category"}
+                                </NeonButton>
+
                             </div>
                         </div>
                     </div>

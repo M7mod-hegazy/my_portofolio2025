@@ -149,7 +149,7 @@ export const SkillsAdmin = () => {
                 if (iconKey && skill.icon !== iconKey) {
                     // Update this skill
                     matchCount++;
-                    await fetch(`/api/skills/${skill._id}`, {
+                    await fetch(`/api/skills?id=${skill._id}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ ...skill, icon: iconKey })
@@ -194,7 +194,7 @@ export const SkillsAdmin = () => {
         if (!confirm("Are you sure? This action cannot be undone.")) return;
         const toastId = toast.loading("Deleting...");
         try {
-            await fetch(`/api/skills/${id}`, { method: 'DELETE' });
+            await fetch(`/api/skills?id=${id}`, { method: 'DELETE' });
             toast.success("Skill deleted", { id: toastId });
             fetchData();
             if (selectedId === id) {

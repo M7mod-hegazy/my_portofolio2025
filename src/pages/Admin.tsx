@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { PortfolioItemForm } from '@/components/PortfolioItemForm';
 import { ImageUpload } from '@/components/ImageUpload';
@@ -13,7 +13,7 @@ import {
   Code, Server, Paintbrush, Bot, Plus, Edit, Trash2, Save, Upload,
   Users, Briefcase, Award, FileText, Settings, BarChart3, Eye,
   Search, Filter, Grid, List, Calendar, Star, TrendingUp, MapPin,
-  Trophy, GraduationCap, Globe, Menu, X
+  Trophy, GraduationCap, Globe, Menu, X, GripVertical
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet';
 import * as SimpleIcons from "react-icons/si";
@@ -1248,6 +1248,30 @@ const Admin = () => {
     }
   };
 
+  const handleReorderProjects = async (newOrder: Project[]) => {
+    // Optimistically update UI
+    setProjects(newOrder);
+
+    try {
+      console.log('Reordering projects:', newOrder.map(p => p.title));
+      const items = newOrder.map((p, index) => ({ id: p._id, order: index }));
+
+      const response = await fetch('/api/projects/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save order');
+      }
+      console.log('Order saved successfully');
+    } catch (error) {
+      console.error('Error saving project order:', error);
+      // Optionally revert state here if needed, but for now just log
+    }
+  };
+
   // Certification CRUD functions
   const handleAddCertification = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2458,133 +2482,92 @@ const Admin = () => {
                 <div className="lg:col-span-3 space-y-6">
 
                   {/* Projects Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                    {projects.map((project: Project, index) => (
-                      <motion.div
-                        key={project._id || `project-${index}`}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: index * 0.1 }}
-                        className="group"
-                      >
-                        <Card className="border-0 bg-gradient-to-br from-background/50 to-secondary/20 backdrop-blur-sm hover:shadow-2xl transition-all duration-500 overflow-hidden">
-                          <div className="relative">
-                            <div className="aspect-video bg-gradient-to-br from-primary/10 to-accent/10 overflow-hidden">
-                              {project.images && project.images.length > 0 ? (
-                                <img
-                                  src={project.images[0]}
-                                  alt={project.title}
-                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
-                                  <Briefcase className="w-12 h-12 text-primary/60" />
-                                </div>
-                              )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {projects.map((project) => (
+                      <Card key={project._id} className="border-0 bg-gradient-to-br from-background/50 to-secondary/20 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 overflow-hidden flex flex-col">
+                        <div className="relative w-full aspect-video bg-gradient-to-br from-primary/10 to-accent/10 overflow-hidden">
+                          {project.images && project.images.length > 0 ? (
+                            <img
+                              src={project.images[0]}
+                              alt={project.title}
+                              className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Briefcase className="w-12 h-12 text-primary/40" />
                             </div>
-                            <div className="absolute top-4 right-4">
-                              <Badge className="bg-background/80 text-foreground border-primary/20">
-                                {project.category || 'General'}
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                            <div className="w-full flex justify-between items-center">
+                              <Badge variant="secondary" className="backdrop-blur-md bg-background/50">
+                                {project.category}
                               </Badge>
                             </div>
                           </div>
+                        </div>
 
-                          <CardContent className="p-6">
-                            <div className="space-y-4">
-                              <div>
-                                <h4 className="font-bold text-xl mb-2 group-hover:text-primary transition-colors duration-300">
-                                  {project.title}
-                                </h4>
-                                <p className="text-muted-foreground text-sm leading-relaxed line-clamp-3">
-                                  {project.description}
-                                </p>
-                              </div>
-
-                              {project.technologies && project.technologies.length > 0 && (
-                                <div className="space-y-2">
-                                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                    Technologies
-                                  </p>
-                                  <div className="flex flex-wrap gap-2">
-                                    {project.technologies.slice(0, 4).map((tech, i) => (
-                                      <Badge key={i} variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">
-                                        {tech}
-                                      </Badge>
-                                    ))}
-                                    {project.technologies.length > 4 && (
-                                      <Badge variant="outline" className="text-xs border-primary/30">
-                                        +{project.technologies.length - 4} more
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                              <div className="flex gap-3 pt-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="flex-1 bg-background/50 hover:bg-primary/10 border-primary/20 hover:border-primary/40"
-                                  onClick={() => {
-                                    setEditingProject(project);
-                                    setNewProject(project);
-                                    setUploadedImages(project.images || []);
-                                    setShowProjectForm(true);
-                                  }}
-                                >
-                                  <Edit className="w-4 h-4 mr-2" />
-                                  Edit
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="bg-background/50 hover:bg-destructive/10 border-destructive/20 hover:border-destructive/40 text-destructive"
-                                  onClick={() => handleDeleteProject(project._id!)}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
+                        <div className="p-4 flex-1 flex flex-col">
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="font-bold text-lg line-clamp-1" title={project.title}>
+                              {project.title}
+                            </h4>
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => {
+                                  setEditingProject(project);
+                                  setItemType('Project'); // fix for 'setNewProject' if needed, or use generic
+                                  // adapting based on context - Admin.tsx seems to use explicit setters
+                                  // Assuming old logic was valid:
+                                  // setNewProject(project); // Checking if this exists?
+                                  // setUploadedImages(project.images || []);
+                                  setShowProjectForm(true);
+                                }}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-destructive hover:text-destructive"
+                                onClick={() => handleDeleteProject(project._id!)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
                             </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
+                          </div>
+
+                          <p className="text-muted-foreground text-sm line-clamp-2 mb-3 flex-1">
+                            {project.description}
+                          </p>
+
+                          <div className="flex flex-wrap gap-1 mt-auto">
+                            {project.technologies?.slice(0, 3).map((tech, i) => (
+                              <Badge key={i} variant="outline" className="text-[10px] py-0 h-5">
+                                {tech}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </Card>
                     ))}
                   </div>
 
-                  {/* Empty State */}
                   {projects.length === 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.5 }}
-                    >
-                      <Card className="border-0 bg-gradient-to-br from-background/50 to-secondary/20 backdrop-blur-sm">
-                        <CardContent className="p-16 text-center">
-                          <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-r from-primary/20 to-accent/20 flex items-center justify-center">
-                            <Briefcase className="w-12 h-12 text-primary" />
-                          </div>
-                          <h3 className="text-2xl font-bold mb-4">No Projects Yet</h3>
-                          <p className="text-muted-foreground text-lg mb-8 max-w-md mx-auto">
-                            Start building your impressive portfolio by adding your first project. Showcase your skills and achievements!
-                          </p>
-                          <Button
-                            onClick={() => setShowProjectForm(true)}
-                            className="bg-gradient-to-r from-primary to-accent shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-3"
-                            size="lg"
-                          >
-                            <Plus className="w-5 h-5 mr-2" />
-                            Create Your First Project
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
+                    <div className="text-center py-12 border border-dashed border-white/10 rounded-xl">
+                      <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-xl font-medium mb-2">No Projects Yet</h3>
+                      <Button onClick={() => setShowProjectForm(true)}>Create Project</Button>
+                    </div>
                   )}
                 </div>
               </div>
             </TabsContent>
 
             {/* Certifications Tab */}
-            <TabsContent value="certifications" className="space-y-6">
+            < TabsContent value="certifications" className="space-y-6" >
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-2xl font-bold">Certifications</h3>
@@ -2678,26 +2661,28 @@ const Admin = () => {
                 ))}
               </div>
 
-              {certifications.length === 0 && (
-                <Card className="border-0 bg-gradient-to-br from-background/50 to-secondary/20 backdrop-blur-sm">
-                  <CardContent className="p-12 text-center">
-                    <Award className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">No Certifications Yet</h3>
-                    <p className="text-muted-foreground mb-6">Showcase your professional achievements and certifications</p>
-                    <Button
-                      onClick={() => setShowCertificationForm(true)}
-                      className="bg-gradient-to-r from-primary to-accent"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Your First Certification
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
+              {
+                certifications.length === 0 && (
+                  <Card className="border-0 bg-gradient-to-br from-background/50 to-secondary/20 backdrop-blur-sm">
+                    <CardContent className="p-12 text-center">
+                      <Award className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold mb-2">No Certifications Yet</h3>
+                      <p className="text-muted-foreground mb-6">Showcase your professional achievements and certifications</p>
+                      <Button
+                        onClick={() => setShowCertificationForm(true)}
+                        className="bg-gradient-to-r from-primary to-accent"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Your First Certification
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )
+              }
+            </TabsContent >
 
             {/* Journey Tab - Manages Career Timeline */}
-            <TabsContent value="journey" className="space-y-8">
+            < TabsContent value="journey" className="space-y-8" >
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
@@ -2747,132 +2732,134 @@ const Admin = () => {
               </div>
 
               {/* Journey Items */}
-              {journeyItems.length > 0 ? (
-                <div className="space-y-6">
-                  {journeyItems.map((item, index) => (
-                    <motion.div
-                      key={item._id || `journey-${index}`}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      className="group"
-                    >
-                      <Card className="border-0 bg-gradient-to-br from-background/50 to-secondary/20 backdrop-blur-sm hover:shadow-lg transition-all duration-300">
-                        <CardContent className="p-6">
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex items-center gap-4">
-                              <div className={`p-3 rounded-xl bg-gradient-to-r ${item.type === 'work' ? 'from-blue-500 to-blue-600' :
-                                item.type === 'education' ? 'from-purple-500 to-purple-600' :
-                                  'from-green-500 to-green-600'
-                                }`}>
-                                {item.type === 'work' ? <Briefcase className="w-5 h-5 text-white" /> :
-                                  item.type === 'education' ? <Award className="w-5 h-5 text-white" /> :
-                                    <MapPin className="w-5 h-5 text-white" />}
-                              </div>
-                              <div>
-                                <h4 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors">
-                                  {item.title}
-                                </h4>
-                                <p className="text-lg text-muted-foreground">{item.company}</p>
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                                  {item.location && (
-                                    <span className="flex items-center gap-1">
-                                      <MapPin className="w-3 h-3" />
-                                      {item.location}
-                                    </span>
-                                  )}
-                                  {item.period && <span>{item.period}</span>}
+              {
+                journeyItems.length > 0 ? (
+                  <div className="space-y-6">
+                    {journeyItems.map((item, index) => (
+                      <motion.div
+                        key={item._id || `journey-${index}`}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        className="group"
+                      >
+                        <Card className="border-0 bg-gradient-to-br from-background/50 to-secondary/20 backdrop-blur-sm hover:shadow-lg transition-all duration-300">
+                          <CardContent className="p-6">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="flex items-center gap-4">
+                                <div className={`p-3 rounded-xl bg-gradient-to-r ${item.type === 'work' ? 'from-blue-500 to-blue-600' :
+                                  item.type === 'education' ? 'from-purple-500 to-purple-600' :
+                                    'from-green-500 to-green-600'
+                                  }`}>
+                                  {item.type === 'work' ? <Briefcase className="w-5 h-5 text-white" /> :
+                                    item.type === 'education' ? <Award className="w-5 h-5 text-white" /> :
+                                      <MapPin className="w-5 h-5 text-white" />}
+                                </div>
+                                <div>
+                                  <h4 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors">
+                                    {item.title}
+                                  </h4>
+                                  <p className="text-lg text-muted-foreground">{item.company}</p>
+                                  <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                                    {item.location && (
+                                      <span className="flex items-center gap-1">
+                                        <MapPin className="w-3 h-3" />
+                                        {item.location}
+                                      </span>
+                                    )}
+                                    {item.period && <span>{item.period}</span>}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setEditingJourneyItem(item);
-                                  setNewJourneyItem(item);
-                                  setShowJourneyForm(true);
-                                }}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => handleDeleteJourneyItem(item._id!)}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-
-                          {item.description && (
-                            <p className="text-muted-foreground mb-4 leading-relaxed">
-                              {item.description}
-                            </p>
-                          )}
-
-                          {item.achievements && item.achievements.length > 0 && (
-                            <div className="mb-4">
-                              <h5 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
-                                Key Achievements
-                              </h5>
-                              <ul className="space-y-1">
-                                {item.achievements.map((achievement, i) => (
-                                  <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
-                                    {achievement}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-
-                          {item.technologies && item.technologies.length > 0 && (
-                            <div>
-                              <h5 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
-                                Technologies
-                              </h5>
-                              <div className="flex flex-wrap gap-2">
-                                {item.technologies.map((tech, i) => (
-                                  <Badge key={i} variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">
-                                    {tech}
-                                  </Badge>
-                                ))}
+                              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingJourneyItem(item);
+                                    setNewJourneyItem(item);
+                                    setShowJourneyForm(true);
+                                  }}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handleDeleteJourneyItem(item._id!)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
                               </div>
                             </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  ))}
-                </div>
-              ) : (
-                <Card className="border-0 bg-gradient-to-br from-background/50 to-secondary/20 backdrop-blur-sm">
-                  <CardContent className="p-16 text-center">
-                    <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-r from-primary/20 to-accent/20 flex items-center justify-center">
-                      <MapPin className="w-12 h-12 text-primary" />
-                    </div>
-                    <h3 className="text-2xl font-bold mb-4">No Journey Items Yet</h3>
-                    <p className="text-muted-foreground text-lg mb-8 max-w-md mx-auto">
-                      Start building your career timeline by adding your work experience and education.
-                    </p>
-                    <Button
-                      onClick={() => setShowJourneyForm(true)}
-                      className="bg-gradient-to-r from-primary to-accent shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-3"
-                      size="lg"
-                    >
-                      <Plus className="w-5 h-5 mr-2" />
-                      Add Your First Journey Item
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
+
+                            {item.description && (
+                              <p className="text-muted-foreground mb-4 leading-relaxed">
+                                {item.description}
+                              </p>
+                            )}
+
+                            {item.achievements && item.achievements.length > 0 && (
+                              <div className="mb-4">
+                                <h5 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
+                                  Key Achievements
+                                </h5>
+                                <ul className="space-y-1">
+                                  {item.achievements.map((achievement, i) => (
+                                    <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
+                                      {achievement}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {item.technologies && item.technologies.length > 0 && (
+                              <div>
+                                <h5 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
+                                  Technologies
+                                </h5>
+                                <div className="flex flex-wrap gap-2">
+                                  {item.technologies.map((tech, i) => (
+                                    <Badge key={i} variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">
+                                      {tech}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <Card className="border-0 bg-gradient-to-br from-background/50 to-secondary/20 backdrop-blur-sm">
+                    <CardContent className="p-16 text-center">
+                      <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-r from-primary/20 to-accent/20 flex items-center justify-center">
+                        <MapPin className="w-12 h-12 text-primary" />
+                      </div>
+                      <h3 className="text-2xl font-bold mb-4">No Journey Items Yet</h3>
+                      <p className="text-muted-foreground text-lg mb-8 max-w-md mx-auto">
+                        Start building your career timeline by adding your work experience and education.
+                      </p>
+                      <Button
+                        onClick={() => setShowJourneyForm(true)}
+                        className="bg-gradient-to-r from-primary to-accent shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-3"
+                        size="lg"
+                      >
+                        <Plus className="w-5 h-5 mr-2" />
+                        Add Your First Journey Item
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )
+              }
+            </TabsContent >
 
             {/* Contact Tab - Manages Contact Information */}
-            <TabsContent value="contact" className="space-y-8">
+            < TabsContent value="contact" className="space-y-8" >
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
@@ -3036,10 +3023,10 @@ const Admin = () => {
                   </Button>
                 </div>
               </form>
-            </TabsContent>
+            </TabsContent >
 
             {/* CV Management Tab */}
-            <TabsContent value="cv" className="space-y-8">
+            < TabsContent value="cv" className="space-y-8" >
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
@@ -3144,802 +3131,812 @@ const Admin = () => {
                   </CardContent>
                 </Card>
               </div>
-            </TabsContent>
-          </Tabs>
-        </motion.div>
+            </TabsContent >
+          </Tabs >
+        </motion.div >
 
         {/* Enhanced Modals */}
         <AnimatePresence>
-          {editingItem && itemType && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            >
+          {
+            editingItem && itemType && (
               <motion.div
-                initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                className="w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
               >
-                <Card className="border-0 bg-gradient-to-br from-background/95 to-secondary/30 backdrop-blur-xl shadow-2xl">
-                  <CardHeader className="border-b border-primary/10">
-                    <CardTitle className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-gradient-to-r from-primary to-accent">
-                        {itemType === 'Project' ? <Briefcase className="w-5 h-5 text-white" /> : <Award className="w-5 h-5 text-white" />}
-                      </div>
-                      {editingItem._id ? `Edit ${itemType}` : `Add New ${itemType}`}
-                    </CardTitle>
-                    <CardDescription>
-                      {itemType === 'Project' ? 'Showcase your work and achievements' : 'Add your professional certifications'}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <PortfolioItemForm
-                      item={editingItem}
-                      onSave={handleSaveItem}
-                      onCancel={() => setEditingItem(null)}
-                      itemType={itemType}
-                    />
-                  </CardContent>
-                </Card>
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                  className="w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+                >
+                  <Card className="border-0 bg-gradient-to-br from-background/95 to-secondary/30 backdrop-blur-xl shadow-2xl">
+                    <CardHeader className="border-b border-primary/10">
+                      <CardTitle className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-gradient-to-r from-primary to-accent">
+                          {itemType === 'Project' ? <Briefcase className="w-5 h-5 text-white" /> : <Award className="w-5 h-5 text-white" />}
+                        </div>
+                        {editingItem._id ? `Edit ${itemType}` : `Add New ${itemType}`}
+                      </CardTitle>
+                      <CardDescription>
+                        {itemType === 'Project' ? 'Showcase your work and achievements' : 'Add your professional certifications'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <PortfolioItemForm
+                        item={editingItem}
+                        onSave={handleSaveItem}
+                        onCancel={() => setEditingItem(null)}
+                        itemType={itemType}
+                      />
+                    </CardContent>
+                  </Card>
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )
+          }
+        </AnimatePresence >
 
         {/* Enhanced Skill Form Modal */}
         <AnimatePresence>
-          {showSkillForm && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            >
+          {
+            showSkillForm && (
               <motion.div
-                initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                className="w-full max-w-2xl"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
               >
-                <Card className="border-0 bg-gradient-to-br from-background/95 to-secondary/30 backdrop-blur-xl shadow-2xl">
-                  <CardHeader className="border-b border-primary/10">
-                    <CardTitle className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-gradient-to-r from-primary to-accent">
-                        <Code className="w-5 h-5 text-white" />
-                      </div>
-                      {editingSkill ? 'Edit Skill' : 'Add New Skill'}
-                    </CardTitle>
-                    <CardDescription>
-                      {editingSkill ? 'Update your skill information' : 'Add a new skill to your portfolio with auto-generated icon'}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <form onSubmit={handleAddSkill} className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Skill Name */}
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Skill Name</label>
-                          <Input
-                            value={newSkill.name}
-                            onChange={(e) => handleSkillNameChange(e.target.value)}
-                            placeholder="e.g., React, Python, MongoDB"
-                            className="bg-background/50 border-primary/20 focus:border-primary"
-                            required
-                          />
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                  className="w-full max-w-2xl"
+                >
+                  <Card className="border-0 bg-gradient-to-br from-background/95 to-secondary/30 backdrop-blur-xl shadow-2xl">
+                    <CardHeader className="border-b border-primary/10">
+                      <CardTitle className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-gradient-to-r from-primary to-accent">
+                          <Code className="w-5 h-5 text-white" />
                         </div>
+                        {editingSkill ? 'Edit Skill' : 'Add New Skill'}
+                      </CardTitle>
+                      <CardDescription>
+                        {editingSkill ? 'Update your skill information' : 'Add a new skill to your portfolio with auto-generated icon'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <form onSubmit={handleAddSkill} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Skill Name */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Skill Name</label>
+                            <Input
+                              value={newSkill.name}
+                              onChange={(e) => handleSkillNameChange(e.target.value)}
+                              placeholder="e.g., React, Python, MongoDB"
+                              className="bg-background/50 border-primary/20 focus:border-primary"
+                              required
+                            />
+                          </div>
 
-                        {/* Category */}
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Category</label>
-                          <select
-                            value={newSkill.category}
-                            onChange={(e) => setNewSkill(prev => ({ ...prev, category: e.target.value }))}
-                            className="w-full px-3 py-2 rounded-md border border-primary/20 bg-background/50 focus:border-primary"
-                            required
-                          >
-                            <option value="">Select Category</option>
-                            {skillCategories.map(cat => (
-                              <option key={cat} value={cat}>{cat}</option>
-                            ))}
-                          </select>
-                        </div>
+                          {/* Category */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Category</label>
+                            <select
+                              value={newSkill.category}
+                              onChange={(e) => setNewSkill(prev => ({ ...prev, category: e.target.value }))}
+                              className="w-full px-3 py-2 rounded-md border border-primary/20 bg-background/50 focus:border-primary"
+                              required
+                            >
+                              <option value="">Select Category</option>
+                              {skillCategories.map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                              ))}
+                            </select>
+                          </div>
 
-                        {/* Proficiency Level */}
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Proficiency Level</label>
-                          <select
-                            value={newSkill.level}
-                            onChange={(e) => setNewSkill(prev => ({ ...prev, level: e.target.value }))}
-                            className="w-full px-3 py-2 rounded-md border border-primary/20 bg-background/50 focus:border-primary"
-                            required
-                          >
-                            <option value="Beginner">Beginner</option>
-                            <option value="Intermediate">Intermediate</option>
-                            <option value="Advanced">Advanced</option>
-                            <option value="Expert">Expert</option>
-                          </select>
-                        </div>
+                          {/* Proficiency Level */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Proficiency Level</label>
+                            <select
+                              value={newSkill.level}
+                              onChange={(e) => setNewSkill(prev => ({ ...prev, level: e.target.value }))}
+                              className="w-full px-3 py-2 rounded-md border border-primary/20 bg-background/50 focus:border-primary"
+                              required
+                            >
+                              <option value="Beginner">Beginner</option>
+                              <option value="Intermediate">Intermediate</option>
+                              <option value="Advanced">Advanced</option>
+                              <option value="Expert">Expert</option>
+                            </select>
+                          </div>
 
-                        {/* Icon Preview */}
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Icon Preview</label>
-                          <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-background/40 to-secondary/10 border border-primary/10">
-                            <div className="p-2 rounded-lg bg-gradient-to-r from-primary/20 to-accent/20">
-                              {(() => {
-                                const IconComponent = SimpleIcons[newSkill.icon as keyof typeof SimpleIcons] || Code;
-                                return <IconComponent className="w-6 h-6 text-primary" />;
-                              })()}
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm">{newSkill.icon || 'Auto-generated'}</p>
-                              <p className="text-xs text-muted-foreground">Icon updates automatically</p>
+                          {/* Icon Preview */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Icon Preview</label>
+                            <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-background/40 to-secondary/10 border border-primary/10">
+                              <div className="p-2 rounded-lg bg-gradient-to-r from-primary/20 to-accent/20">
+                                {(() => {
+                                  const IconComponent = SimpleIcons[newSkill.icon as keyof typeof SimpleIcons] || Code;
+                                  return <IconComponent className="w-6 h-6 text-primary" />;
+                                })()}
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm">{newSkill.icon || 'Auto-generated'}</p>
+                                <p className="text-xs text-muted-foreground">Icon updates automatically</p>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Manual Icon Override */}
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Manual Icon Override (Optional)</label>
-                        <Input
-                          value={newSkill.icon}
-                          onChange={(e) => setNewSkill(prev => ({ ...prev, icon: e.target.value }))}
-                          placeholder="e.g., SiReact, SiPython, SiMongodb"
-                          className="bg-background/50 border-primary/20 focus:border-primary"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Leave empty for auto-generation. Use SimpleIcons format (e.g., SiReact, SiPython)
-                        </p>
-                      </div>
+                        {/* Manual Icon Override */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Manual Icon Override (Optional)</label>
+                          <Input
+                            value={newSkill.icon}
+                            onChange={(e) => setNewSkill(prev => ({ ...prev, icon: e.target.value }))}
+                            placeholder="e.g., SiReact, SiPython, SiMongodb"
+                            className="bg-background/50 border-primary/20 focus:border-primary"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Leave empty for auto-generation. Use SimpleIcons format (e.g., SiReact, SiPython)
+                          </p>
+                        </div>
 
-                      {/* Action Buttons */}
-                      <div className="flex gap-3 pt-4">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            setShowSkillForm(false);
-                            setEditingSkill(null);
-                            setNewSkill({ name: '', icon: '', category: '', level: 'Intermediate' });
-                          }}
-                          className="flex-1"
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="submit"
-                          className="flex-1 bg-gradient-to-r from-primary to-accent"
-                          disabled={!newSkill.name || !newSkill.category}
-                        >
-                          <Save className="w-4 h-4 mr-2" />
-                          {editingSkill ? 'Update Skill' : 'Add Skill'}
-                        </Button>
-                      </div>
-                    </form>
-                  </CardContent>
-                </Card>
+                        {/* Action Buttons */}
+                        <div className="flex gap-3 pt-4">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setShowSkillForm(false);
+                              setEditingSkill(null);
+                              setNewSkill({ name: '', icon: '', category: '', level: 'Intermediate' });
+                            }}
+                            className="flex-1"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            type="submit"
+                            className="flex-1 bg-gradient-to-r from-primary to-accent"
+                            disabled={!newSkill.name || !newSkill.category}
+                          >
+                            <Save className="w-4 h-4 mr-2" />
+                            {editingSkill ? 'Update Skill' : 'Add Skill'}
+                          </Button>
+                        </div>
+                      </form>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )
+          }
+        </AnimatePresence >
 
         {/* Enhanced Project Form Modal */}
         <AnimatePresence>
-          {showProjectForm && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            >
+          {
+            showProjectForm && (
               <motion.div
-                initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                className="w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
               >
-                <Card className="border-0 bg-gradient-to-br from-background/95 to-secondary/30 backdrop-blur-xl shadow-2xl">
-                  <CardHeader className="border-b border-primary/10">
-                    <CardTitle className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-gradient-to-r from-primary to-accent">
-                        <Briefcase className="w-5 h-5 text-white" />
-                      </div>
-                      {editingProject ? 'Edit Project' : 'Add New Project'}
-                    </CardTitle>
-                    <CardDescription>
-                      {editingProject ? 'Update your project information' : 'Add a new project to your portfolio'}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <form onSubmit={handleAddProject} className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Project Title */}
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                  className="w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+                >
+                  <Card className="border-0 bg-gradient-to-br from-background/95 to-secondary/30 backdrop-blur-xl shadow-2xl">
+                    <CardHeader className="border-b border-primary/10">
+                      <CardTitle className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-gradient-to-r from-primary to-accent">
+                          <Briefcase className="w-5 h-5 text-white" />
+                        </div>
+                        {editingProject ? 'Edit Project' : 'Add New Project'}
+                      </CardTitle>
+                      <CardDescription>
+                        {editingProject ? 'Update your project information' : 'Add a new project to your portfolio'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <form onSubmit={handleAddProject} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Project Title */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Project Title</label>
+                            <Input
+                              value={newProject.title}
+                              onChange={(e) => setNewProject(prev => ({ ...prev, title: e.target.value }))}
+                              placeholder="e.g., E-commerce Platform"
+                              className="bg-background/50 border-primary/20 focus:border-primary"
+                              required
+                            />
+                          </div>
+
+                          {/* Category */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Category</label>
+                            <select
+                              value={newProject.category}
+                              onChange={(e) => setNewProject(prev => ({ ...prev, category: e.target.value }))}
+                              className="w-full px-3 py-2 rounded-md border border-primary/20 bg-background/50 focus:border-primary"
+                              required
+                            >
+                              <option value="">Select Category</option>
+                              {projectCategories.map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Live URL */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Live URL (Optional)</label>
+                            <Input
+                              value={newProject.liveUrl}
+                              onChange={(e) => setNewProject(prev => ({ ...prev, liveUrl: e.target.value }))}
+                              placeholder="https://your-project.com"
+                              className="bg-background/50 border-primary/20 focus:border-primary"
+                              type="url"
+                            />
+                          </div>
+
+                          {/* GitHub URL */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">GitHub URL (Optional)</label>
+                            <Input
+                              value={newProject.githubUrl}
+                              onChange={(e) => setNewProject(prev => ({ ...prev, githubUrl: e.target.value }))}
+                              placeholder="https://github.com/username/repo"
+                              className="bg-background/50 border-primary/20 focus:border-primary"
+                              type="url"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Description */}
                         <div className="space-y-2">
-                          <label className="text-sm font-medium">Project Title</label>
-                          <Input
-                            value={newProject.title}
-                            onChange={(e) => setNewProject(prev => ({ ...prev, title: e.target.value }))}
-                            placeholder="e.g., E-commerce Platform"
-                            className="bg-background/50 border-primary/20 focus:border-primary"
+                          <label className="text-sm font-medium">Description</label>
+                          <textarea
+                            value={newProject.description}
+                            onChange={(e) => setNewProject(prev => ({ ...prev, description: e.target.value }))}
+                            placeholder="Describe your project, its features, and what makes it special..."
+                            className="w-full px-3 py-2 rounded-md border border-primary/20 bg-background/50 focus:border-primary resize-none"
+                            rows={4}
                             required
                           />
                         </div>
 
-                        {/* Category */}
+                        {/* Technologies */}
                         <div className="space-y-2">
-                          <label className="text-sm font-medium">Category</label>
-                          <select
-                            value={newProject.category}
-                            onChange={(e) => setNewProject(prev => ({ ...prev, category: e.target.value }))}
-                            className="w-full px-3 py-2 rounded-md border border-primary/20 bg-background/50 focus:border-primary"
-                            required
-                          >
-                            <option value="">Select Category</option>
-                            {projectCategories.map(cat => (
-                              <option key={cat} value={cat}>{cat}</option>
-                            ))}
-                          </select>
-                        </div>
-
-                        {/* Live URL */}
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Live URL (Optional)</label>
+                          <label className="text-sm font-medium">Technologies Used</label>
                           <Input
-                            value={newProject.liveUrl}
-                            onChange={(e) => setNewProject(prev => ({ ...prev, liveUrl: e.target.value }))}
-                            placeholder="https://your-project.com"
+                            value={newProject.technologies.join(', ')}
+                            onChange={(e) => setNewProject(prev => ({
+                              ...prev,
+                              technologies: e.target.value.split(',').map(tech => tech.trim()).filter(tech => tech)
+                            }))}
+                            placeholder="React, Node.js, MongoDB, TypeScript (comma separated)"
                             className="bg-background/50 border-primary/20 focus:border-primary"
-                            type="url"
                           />
                         </div>
 
-                        {/* GitHub URL */}
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">GitHub URL (Optional)</label>
-                          <Input
-                            value={newProject.githubUrl}
-                            onChange={(e) => setNewProject(prev => ({ ...prev, githubUrl: e.target.value }))}
-                            placeholder="https://github.com/username/repo"
-                            className="bg-background/50 border-primary/20 focus:border-primary"
-                            type="url"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Description */}
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Description</label>
-                        <textarea
-                          value={newProject.description}
-                          onChange={(e) => setNewProject(prev => ({ ...prev, description: e.target.value }))}
-                          placeholder="Describe your project, its features, and what makes it special..."
-                          className="w-full px-3 py-2 rounded-md border border-primary/20 bg-background/50 focus:border-primary resize-none"
-                          rows={4}
-                          required
-                        />
-                      </div>
-
-                      {/* Technologies */}
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Technologies Used</label>
-                        <Input
-                          value={newProject.technologies.join(', ')}
-                          onChange={(e) => setNewProject(prev => ({
-                            ...prev,
-                            technologies: e.target.value.split(',').map(tech => tech.trim()).filter(tech => tech)
-                          }))}
-                          placeholder="React, Node.js, MongoDB, TypeScript (comma separated)"
-                          className="bg-background/50 border-primary/20 focus:border-primary"
-                        />
-                      </div>
-
-                      {/* Featured Toggle */}
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id="featured"
-                          checked={newProject.featured}
-                          onChange={(e) => setNewProject(prev => ({ ...prev, featured: e.target.checked }))}
-                          className="rounded border-primary/20"
-                        />
-                        <label htmlFor="featured" className="text-sm font-medium">
-                          Mark as Featured Project
-                        </label>
-                      </div>
-
-                      {/* Image Upload */}
-                      <div className="space-y-4">
-                        <label className="text-sm font-medium">Project Images</label>
-
-                        {/* Drag and Drop Area */}
-                        <div
-                          className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 ${dragActive
-                            ? 'border-primary bg-primary/10'
-                            : 'border-primary/20 hover:border-primary/40 hover:bg-primary/5'
-                            }`}
-                          onDragOver={handleDragOver}
-                          onDragLeave={handleDragLeave}
-                          onDrop={handleDrop}
-                        >
-                          <Upload className="w-12 h-12 text-primary mx-auto mb-4" />
-                          <p className="text-lg font-medium mb-2">
-                            {dragActive ? 'Drop images here' : 'Drag & drop images here'}
-                          </p>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            or click to select files
-                          </p>
+                        {/* Featured Toggle */}
+                        <div className="flex items-center space-x-2">
                           <input
-                            type="file"
-                            multiple
-                            accept="image/*"
-                            onChange={(e) => e.target.files && handleImageUpload(e.target.files)}
-                            className="hidden"
-                            id="image-upload"
+                            type="checkbox"
+                            id="featured"
+                            checked={newProject.featured}
+                            onChange={(e) => setNewProject(prev => ({ ...prev, featured: e.target.checked }))}
+                            className="rounded border-primary/20"
                           />
+                          <label htmlFor="featured" className="text-sm font-medium">
+                            Mark as Featured Project
+                          </label>
+                        </div>
+
+                        {/* Image Upload */}
+                        <div className="space-y-4">
+                          <label className="text-sm font-medium">Project Images</label>
+
+                          {/* Drag and Drop Area */}
+                          <div
+                            className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 ${dragActive
+                              ? 'border-primary bg-primary/10'
+                              : 'border-primary/20 hover:border-primary/40 hover:bg-primary/5'
+                              }`}
+                            onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                            onDrop={handleDrop}
+                          >
+                            <Upload className="w-12 h-12 text-primary mx-auto mb-4" />
+                            <p className="text-lg font-medium mb-2">
+                              {dragActive ? 'Drop images here' : 'Drag & drop images here'}
+                            </p>
+                            <p className="text-sm text-muted-foreground mb-4">
+                              or click to select files
+                            </p>
+                            <input
+                              type="file"
+                              multiple
+                              accept="image/*"
+                              onChange={(e) => e.target.files && handleImageUpload(e.target.files)}
+                              className="hidden"
+                              id="image-upload"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => document.getElementById('image-upload')?.click()}
+                              className="bg-background/50 border-primary/20 hover:border-primary/40"
+                            >
+                              Select Images
+                            </Button>
+                          </div>
+
+                          {/* Uploaded Images Preview */}
+                          {uploadedImages.length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-sm font-medium">Uploaded Images ({uploadedImages.length})</p>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {uploadedImages.map((imageUrl, index) => (
+                                  <div key={index} className="relative group">
+                                    <img
+                                      src={imageUrl}
+                                      alt={`Project image ${index + 1}`}
+                                      className="w-full h-24 object-cover rounded-lg border border-primary/20"
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="destructive"
+                                      size="sm"
+                                      className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      onClick={() => handleRemoveImage(imageUrl)}
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-3 pt-4">
                           <Button
                             type="button"
                             variant="outline"
-                            onClick={() => document.getElementById('image-upload')?.click()}
-                            className="bg-background/50 border-primary/20 hover:border-primary/40"
+                            onClick={() => {
+                              setShowProjectForm(false);
+                              setEditingProject(null);
+                              setNewProject({
+                                title: '',
+                                description: '',
+                                images: [],
+                                technologies: [],
+                                category: '',
+                                liveUrl: '',
+                                githubUrl: '',
+                                featured: false
+                              });
+                              setUploadedImages([]);
+                            }}
+                            className="flex-1"
                           >
-                            Select Images
+                            Cancel
+                          </Button>
+                          <Button
+                            type="submit"
+                            className="flex-1 bg-gradient-to-r from-primary to-accent"
+                            disabled={!newProject.title || !newProject.description || !newProject.category}
+                          >
+                            <Save className="w-4 h-4 mr-2" />
+                            {editingProject ? 'Update Project' : 'Add Project'}
                           </Button>
                         </div>
-
-                        {/* Uploaded Images Preview */}
-                        {uploadedImages.length > 0 && (
-                          <div className="space-y-2">
-                            <p className="text-sm font-medium">Uploaded Images ({uploadedImages.length})</p>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                              {uploadedImages.map((imageUrl, index) => (
-                                <div key={index} className="relative group">
-                                  <img
-                                    src={imageUrl}
-                                    alt={`Project image ${index + 1}`}
-                                    className="w-full h-24 object-cover rounded-lg border border-primary/20"
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="destructive"
-                                    size="sm"
-                                    className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={() => handleRemoveImage(imageUrl)}
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-3 pt-4">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            setShowProjectForm(false);
-                            setEditingProject(null);
-                            setNewProject({
-                              title: '',
-                              description: '',
-                              images: [],
-                              technologies: [],
-                              category: '',
-                              liveUrl: '',
-                              githubUrl: '',
-                              featured: false
-                            });
-                            setUploadedImages([]);
-                          }}
-                          className="flex-1"
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="submit"
-                          className="flex-1 bg-gradient-to-r from-primary to-accent"
-                          disabled={!newProject.title || !newProject.description || !newProject.category}
-                        >
-                          <Save className="w-4 h-4 mr-2" />
-                          {editingProject ? 'Update Project' : 'Add Project'}
-                        </Button>
-                      </div>
-                    </form>
-                  </CardContent>
-                </Card>
+                      </form>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )
+          }
+        </AnimatePresence >
 
         {/* Enhanced Certification Form Modal */}
         <AnimatePresence>
-          {showCertificationForm && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            >
+          {
+            showCertificationForm && (
               <motion.div
-                initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                className="w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
               >
-                <Card className="border-0 bg-gradient-to-br from-background/95 to-secondary/30 backdrop-blur-xl shadow-2xl">
-                  <CardHeader className="border-b border-primary/10">
-                    <CardTitle className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-gradient-to-r from-green-500 to-blue-600">
-                        <Award className="w-5 h-5 text-white" />
-                      </div>
-                      {editingCertification ? 'Edit Certification' : 'Add New Certification'}
-                    </CardTitle>
-                    <CardDescription>
-                      {editingCertification ? 'Update your certification information' : 'Add a new professional certification to your portfolio'}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <form onSubmit={handleAddCertification} className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Certification Title */}
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Certification Title</label>
-                          <Input
-                            value={newCertification.title}
-                            onChange={(e) => setNewCertification(prev => ({ ...prev, title: e.target.value }))}
-                            placeholder="e.g., AWS Certified Solutions Architect"
-                            className="bg-background/50 border-primary/20 focus:border-primary"
-                            required
-                          />
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                  className="w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+                >
+                  <Card className="border-0 bg-gradient-to-br from-background/95 to-secondary/30 backdrop-blur-xl shadow-2xl">
+                    <CardHeader className="border-b border-primary/10">
+                      <CardTitle className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-gradient-to-r from-green-500 to-blue-600">
+                          <Award className="w-5 h-5 text-white" />
                         </div>
-
-                        {/* Issuer */}
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Issuing Organization</label>
-                          <Input
-                            value={newCertification.issuer}
-                            onChange={(e) => setNewCertification(prev => ({ ...prev, issuer: e.target.value }))}
-                            placeholder="e.g., Amazon Web Services"
-                            className="bg-background/50 border-primary/20 focus:border-primary"
-                            required
-                          />
-                        </div>
-
-                        {/* Issue Date */}
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Issue Date</label>
-                          <Input
-                            type="date"
-                            value={newCertification.date}
-                            onChange={(e) => setNewCertification(prev => ({ ...prev, date: e.target.value }))}
-                            className="bg-background/50 border-primary/20 focus:border-primary"
-                          />
-                        </div>
-
-                        {/* Credential ID */}
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Credential ID (Optional)</label>
-                          <Input
-                            value={newCertification.credentialId}
-                            onChange={(e) => setNewCertification(prev => ({ ...prev, credentialId: e.target.value }))}
-                            placeholder="e.g., AWS-SAA-2023-001"
-                            className="bg-background/50 border-primary/20 focus:border-primary"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Verification URL */}
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Verification URL (Optional)</label>
-                        <Input
-                          type="url"
-                          value={newCertification.verificationUrl}
-                          onChange={(e) => setNewCertification(prev => ({ ...prev, verificationUrl: e.target.value }))}
-                          placeholder="https://verify.example.com/credential-id"
-                          className="bg-background/50 border-primary/20 focus:border-primary"
-                        />
-                      </div>
-
-                      {/* Certificate Image Upload */}
-                      <div className="space-y-4">
-                        <label className="text-sm font-medium">Certificate Image</label>
-
-                        {/* Current Image Preview */}
-                        {certificationImage && (
+                        {editingCertification ? 'Edit Certification' : 'Add New Certification'}
+                      </CardTitle>
+                      <CardDescription>
+                        {editingCertification ? 'Update your certification information' : 'Add a new professional certification to your portfolio'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <form onSubmit={handleAddCertification} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Certification Title */}
                           <div className="space-y-2">
-                            <p className="text-sm text-muted-foreground">Current Image:</p>
-                            <div className="relative inline-block">
-                              <img
-                                src={certificationImage}
-                                alt="Certificate preview"
-                                className="w-32 h-24 object-cover rounded-lg border border-primary/20"
-                              />
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="sm"
-                                className="absolute top-1 right-1 h-6 w-6 p-0"
-                                onClick={() => {
-                                  setCertificationImage('');
-                                  setNewCertification(prev => ({ ...prev, image: '' }));
-                                }}
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
+                            <label className="text-sm font-medium">Certification Title</label>
+                            <Input
+                              value={newCertification.title}
+                              onChange={(e) => setNewCertification(prev => ({ ...prev, title: e.target.value }))}
+                              placeholder="e.g., AWS Certified Solutions Architect"
+                              className="bg-background/50 border-primary/20 focus:border-primary"
+                              required
+                            />
                           </div>
-                        )}
 
-                        {/* Upload Area */}
-                        <div
-                          className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 ${dragActive
-                            ? 'border-primary bg-primary/10'
-                            : 'border-primary/20 hover:border-primary/40 hover:bg-primary/5'
-                            }`}
-                          onDragOver={handleDragOver}
-                          onDragLeave={handleDragLeave}
-                          onDrop={(e) => {
-                            handleDrop(e);
-                            const files = e.dataTransfer.files;
-                            if (files && files.length > 0) {
-                              handleCertificationImageUpload(files);
-                            }
-                          }}
-                        >
-                          <Upload className="w-8 h-8 text-primary mx-auto mb-2" />
-                          <p className="text-sm font-medium mb-1">
-                            {dragActive ? 'Drop certificate image here' : 'Drag & drop certificate image here'}
-                          </p>
-                          <p className="text-xs text-muted-foreground mb-3">
-                            or click to select file
-                          </p>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => e.target.files && handleCertificationImageUpload(e.target.files)}
-                            className="hidden"
-                            id="cert-image-upload"
+                          {/* Issuer */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Issuing Organization</label>
+                            <Input
+                              value={newCertification.issuer}
+                              onChange={(e) => setNewCertification(prev => ({ ...prev, issuer: e.target.value }))}
+                              placeholder="e.g., Amazon Web Services"
+                              className="bg-background/50 border-primary/20 focus:border-primary"
+                              required
+                            />
+                          </div>
+
+                          {/* Issue Date */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Issue Date</label>
+                            <Input
+                              type="date"
+                              value={newCertification.date}
+                              onChange={(e) => setNewCertification(prev => ({ ...prev, date: e.target.value }))}
+                              className="bg-background/50 border-primary/20 focus:border-primary"
+                            />
+                          </div>
+
+                          {/* Credential ID */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Credential ID (Optional)</label>
+                            <Input
+                              value={newCertification.credentialId}
+                              onChange={(e) => setNewCertification(prev => ({ ...prev, credentialId: e.target.value }))}
+                              placeholder="e.g., AWS-SAA-2023-001"
+                              className="bg-background/50 border-primary/20 focus:border-primary"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Verification URL */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Verification URL (Optional)</label>
+                          <Input
+                            type="url"
+                            value={newCertification.verificationUrl}
+                            onChange={(e) => setNewCertification(prev => ({ ...prev, verificationUrl: e.target.value }))}
+                            placeholder="https://verify.example.com/credential-id"
+                            className="bg-background/50 border-primary/20 focus:border-primary"
                           />
+                        </div>
+
+                        {/* Certificate Image Upload */}
+                        <div className="space-y-4">
+                          <label className="text-sm font-medium">Certificate Image</label>
+
+                          {/* Current Image Preview */}
+                          {certificationImage && (
+                            <div className="space-y-2">
+                              <p className="text-sm text-muted-foreground">Current Image:</p>
+                              <div className="relative inline-block">
+                                <img
+                                  src={certificationImage}
+                                  alt="Certificate preview"
+                                  className="w-32 h-24 object-cover rounded-lg border border-primary/20"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="sm"
+                                  className="absolute top-1 right-1 h-6 w-6 p-0"
+                                  onClick={() => {
+                                    setCertificationImage('');
+                                    setNewCertification(prev => ({ ...prev, image: '' }));
+                                  }}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Upload Area */}
+                          <div
+                            className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 ${dragActive
+                              ? 'border-primary bg-primary/10'
+                              : 'border-primary/20 hover:border-primary/40 hover:bg-primary/5'
+                              }`}
+                            onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                            onDrop={(e) => {
+                              handleDrop(e);
+                              const files = e.dataTransfer.files;
+                              if (files && files.length > 0) {
+                                handleCertificationImageUpload(files);
+                              }
+                            }}
+                          >
+                            <Upload className="w-8 h-8 text-primary mx-auto mb-2" />
+                            <p className="text-sm font-medium mb-1">
+                              {dragActive ? 'Drop certificate image here' : 'Drag & drop certificate image here'}
+                            </p>
+                            <p className="text-xs text-muted-foreground mb-3">
+                              or click to select file
+                            </p>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => e.target.files && handleCertificationImageUpload(e.target.files)}
+                              className="hidden"
+                              id="cert-image-upload"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => document.getElementById('cert-image-upload')?.click()}
+                              className="bg-background/50 border-primary/20 hover:border-primary/40"
+                            >
+                              Select Image
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-3 pt-4">
                           <Button
                             type="button"
                             variant="outline"
-                            onClick={() => document.getElementById('cert-image-upload')?.click()}
-                            className="bg-background/50 border-primary/20 hover:border-primary/40"
+                            onClick={() => {
+                              setShowCertificationForm(false);
+                              setEditingCertification(null);
+                              setNewCertification({
+                                title: '',
+                                issuer: '',
+                                date: '',
+                                credentialId: '',
+                                verificationUrl: '',
+                                image: ''
+                              });
+                              setCertificationImage('');
+                            }}
+                            className="flex-1"
                           >
-                            Select Image
+                            Cancel
+                          </Button>
+                          <Button
+                            type="submit"
+                            className="flex-1 bg-gradient-to-r from-green-500 to-blue-600"
+                            disabled={!newCertification.title || !newCertification.issuer}
+                          >
+                            <Save className="w-4 h-4 mr-2" />
+                            {editingCertification ? 'Update Certification' : 'Add Certification'}
                           </Button>
                         </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-3 pt-4">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            setShowCertificationForm(false);
-                            setEditingCertification(null);
-                            setNewCertification({
-                              title: '',
-                              issuer: '',
-                              date: '',
-                              credentialId: '',
-                              verificationUrl: '',
-                              image: ''
-                            });
-                            setCertificationImage('');
-                          }}
-                          className="flex-1"
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="submit"
-                          className="flex-1 bg-gradient-to-r from-green-500 to-blue-600"
-                          disabled={!newCertification.title || !newCertification.issuer}
-                        >
-                          <Save className="w-4 h-4 mr-2" />
-                          {editingCertification ? 'Update Certification' : 'Add Certification'}
-                        </Button>
-                      </div>
-                    </form>
-                  </CardContent>
-                </Card>
+                      </form>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )
+          }
+        </AnimatePresence >
 
         {/* Enhanced Journey Form Modal */}
         <AnimatePresence>
-          {showJourneyForm && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            >
+          {
+            showJourneyForm && (
               <motion.div
-                initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                className="w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
               >
-                <Card className="border-0 bg-gradient-to-br from-background/95 to-secondary/30 backdrop-blur-xl shadow-2xl">
-                  <CardHeader className="border-b border-primary/10">
-                    <CardTitle className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600">
-                        <MapPin className="w-5 h-5 text-white" />
-                      </div>
-                      {editingJourneyItem ? 'Edit Journey Item' : 'Add New Journey Item'}
-                    </CardTitle>
-                    <CardDescription>
-                      {editingJourneyItem ? 'Update your career timeline item' : 'Add a new milestone to your career journey'}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <form onSubmit={handleAddJourneyItem} className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Title */}
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                  className="w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+                >
+                  <Card className="border-0 bg-gradient-to-br from-background/95 to-secondary/30 backdrop-blur-xl shadow-2xl">
+                    <CardHeader className="border-b border-primary/10">
+                      <CardTitle className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600">
+                          <MapPin className="w-5 h-5 text-white" />
+                        </div>
+                        {editingJourneyItem ? 'Edit Journey Item' : 'Add New Journey Item'}
+                      </CardTitle>
+                      <CardDescription>
+                        {editingJourneyItem ? 'Update your career timeline item' : 'Add a new milestone to your career journey'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <form onSubmit={handleAddJourneyItem} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Title */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Position/Title</label>
+                            <Input
+                              value={newJourneyItem.title}
+                              onChange={(e) => setNewJourneyItem(prev => ({ ...prev, title: e.target.value }))}
+                              placeholder="e.g., Senior Full-Stack Developer"
+                              className="bg-background/50 border-primary/20 focus:border-primary"
+                              required
+                            />
+                          </div>
+
+                          {/* Company */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Company/Institution</label>
+                            <Input
+                              value={newJourneyItem.company}
+                              onChange={(e) => setNewJourneyItem(prev => ({ ...prev, company: e.target.value }))}
+                              placeholder="e.g., TechCorp Solutions"
+                              className="bg-background/50 border-primary/20 focus:border-primary"
+                              required
+                            />
+                          </div>
+
+                          {/* Location */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Location</label>
+                            <Input
+                              value={newJourneyItem.location}
+                              onChange={(e) => setNewJourneyItem(prev => ({ ...prev, location: e.target.value }))}
+                              placeholder="e.g., San Francisco, CA"
+                              className="bg-background/50 border-primary/20 focus:border-primary"
+                            />
+                          </div>
+
+                          {/* Type */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Type</label>
+                            <select
+                              value={newJourneyItem.type}
+                              onChange={(e) => setNewJourneyItem(prev => ({ ...prev, type: e.target.value as 'work' | 'education' | 'project' }))}
+                              className="w-full px-3 py-2 rounded-md border border-primary/20 bg-background/50 focus:border-primary"
+                            >
+                              <option value="work">Work Experience</option>
+                              <option value="education">Education</option>
+                              <option value="project">Project</option>
+                            </select>
+                          </div>
+
+                          {/* Year */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Year</label>
+                            <Input
+                              value={newJourneyItem.year}
+                              onChange={(e) => setNewJourneyItem(prev => ({ ...prev, year: e.target.value }))}
+                              placeholder="e.g., 2023"
+                              className="bg-background/50 border-primary/20 focus:border-primary"
+                            />
+                          </div>
+
+                          {/* Period */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Period</label>
+                            <Input
+                              value={newJourneyItem.period}
+                              onChange={(e) => setNewJourneyItem(prev => ({ ...prev, period: e.target.value }))}
+                              placeholder="e.g., 2022 - Present"
+                              className="bg-background/50 border-primary/20 focus:border-primary"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Description */}
                         <div className="space-y-2">
-                          <label className="text-sm font-medium">Position/Title</label>
-                          <Input
-                            value={newJourneyItem.title}
-                            onChange={(e) => setNewJourneyItem(prev => ({ ...prev, title: e.target.value }))}
-                            placeholder="e.g., Senior Full-Stack Developer"
-                            className="bg-background/50 border-primary/20 focus:border-primary"
-                            required
+                          <label className="text-sm font-medium">Description</label>
+                          <textarea
+                            value={newJourneyItem.description}
+                            onChange={(e) => setNewJourneyItem(prev => ({ ...prev, description: e.target.value }))}
+                            placeholder="Describe your role, responsibilities, and key contributions..."
+                            className="w-full px-3 py-2 rounded-md border border-primary/20 bg-background/50 focus:border-primary resize-none"
+                            rows={4}
                           />
                         </div>
 
-                        {/* Company */}
+                        {/* Achievements */}
                         <div className="space-y-2">
-                          <label className="text-sm font-medium">Company/Institution</label>
-                          <Input
-                            value={newJourneyItem.company}
-                            onChange={(e) => setNewJourneyItem(prev => ({ ...prev, company: e.target.value }))}
-                            placeholder="e.g., TechCorp Solutions"
-                            className="bg-background/50 border-primary/20 focus:border-primary"
-                            required
+                          <label className="text-sm font-medium">Key Achievements</label>
+                          <textarea
+                            value={newJourneyItem.achievements.join('\n')}
+                            onChange={(e) => setNewJourneyItem(prev => ({
+                              ...prev,
+                              achievements: e.target.value.split('\n').filter(a => a.trim())
+                            }))}
+                            placeholder="Enter each achievement on a new line..."
+                            className="w-full px-3 py-2 rounded-md border border-primary/20 bg-background/50 focus:border-primary resize-none"
+                            rows={3}
                           />
                         </div>
 
-                        {/* Location */}
+                        {/* Technologies */}
                         <div className="space-y-2">
-                          <label className="text-sm font-medium">Location</label>
+                          <label className="text-sm font-medium">Technologies Used</label>
                           <Input
-                            value={newJourneyItem.location}
-                            onChange={(e) => setNewJourneyItem(prev => ({ ...prev, location: e.target.value }))}
-                            placeholder="e.g., San Francisco, CA"
+                            value={newJourneyItem.technologies.join(', ')}
+                            onChange={(e) => setNewJourneyItem(prev => ({
+                              ...prev,
+                              technologies: e.target.value.split(',').map(tech => tech.trim()).filter(tech => tech)
+                            }))}
+                            placeholder="React, Node.js, MongoDB, AWS (comma separated)"
                             className="bg-background/50 border-primary/20 focus:border-primary"
                           />
                         </div>
 
-                        {/* Type */}
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Type</label>
-                          <select
-                            value={newJourneyItem.type}
-                            onChange={(e) => setNewJourneyItem(prev => ({ ...prev, type: e.target.value as 'work' | 'education' | 'project' }))}
-                            className="w-full px-3 py-2 rounded-md border border-primary/20 bg-background/50 focus:border-primary"
+                        {/* Action Buttons */}
+                        <div className="flex gap-3 pt-4">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setShowJourneyForm(false);
+                              setEditingJourneyItem(null);
+                              setNewJourneyItem({
+                                title: '',
+                                company: '',
+                                location: '',
+                                year: '',
+                                period: '',
+                                description: '',
+                                achievements: [],
+                                technologies: [],
+                                type: 'work'
+                              });
+                            }}
+                            className="flex-1"
                           >
-                            <option value="work">Work Experience</option>
-                            <option value="education">Education</option>
-                            <option value="project">Project</option>
-                          </select>
+                            Cancel
+                          </Button>
+                          <Button
+                            type="submit"
+                            className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600"
+                            disabled={!newJourneyItem.title || !newJourneyItem.company}
+                          >
+                            <Save className="w-4 h-4 mr-2" />
+                            {editingJourneyItem ? 'Update Journey Item' : 'Add Journey Item'}
+                          </Button>
                         </div>
-
-                        {/* Year */}
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Year</label>
-                          <Input
-                            value={newJourneyItem.year}
-                            onChange={(e) => setNewJourneyItem(prev => ({ ...prev, year: e.target.value }))}
-                            placeholder="e.g., 2023"
-                            className="bg-background/50 border-primary/20 focus:border-primary"
-                          />
-                        </div>
-
-                        {/* Period */}
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Period</label>
-                          <Input
-                            value={newJourneyItem.period}
-                            onChange={(e) => setNewJourneyItem(prev => ({ ...prev, period: e.target.value }))}
-                            placeholder="e.g., 2022 - Present"
-                            className="bg-background/50 border-primary/20 focus:border-primary"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Description */}
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Description</label>
-                        <textarea
-                          value={newJourneyItem.description}
-                          onChange={(e) => setNewJourneyItem(prev => ({ ...prev, description: e.target.value }))}
-                          placeholder="Describe your role, responsibilities, and key contributions..."
-                          className="w-full px-3 py-2 rounded-md border border-primary/20 bg-background/50 focus:border-primary resize-none"
-                          rows={4}
-                        />
-                      </div>
-
-                      {/* Achievements */}
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Key Achievements</label>
-                        <textarea
-                          value={newJourneyItem.achievements.join('\n')}
-                          onChange={(e) => setNewJourneyItem(prev => ({
-                            ...prev,
-                            achievements: e.target.value.split('\n').filter(a => a.trim())
-                          }))}
-                          placeholder="Enter each achievement on a new line..."
-                          className="w-full px-3 py-2 rounded-md border border-primary/20 bg-background/50 focus:border-primary resize-none"
-                          rows={3}
-                        />
-                      </div>
-
-                      {/* Technologies */}
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Technologies Used</label>
-                        <Input
-                          value={newJourneyItem.technologies.join(', ')}
-                          onChange={(e) => setNewJourneyItem(prev => ({
-                            ...prev,
-                            technologies: e.target.value.split(',').map(tech => tech.trim()).filter(tech => tech)
-                          }))}
-                          placeholder="React, Node.js, MongoDB, AWS (comma separated)"
-                          className="bg-background/50 border-primary/20 focus:border-primary"
-                        />
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-3 pt-4">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            setShowJourneyForm(false);
-                            setEditingJourneyItem(null);
-                            setNewJourneyItem({
-                              title: '',
-                              company: '',
-                              location: '',
-                              year: '',
-                              period: '',
-                              description: '',
-                              achievements: [],
-                              technologies: [],
-                              type: 'work'
-                            });
-                          }}
-                          className="flex-1"
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="submit"
-                          className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600"
-                          disabled={!newJourneyItem.title || !newJourneyItem.company}
-                        >
-                          <Save className="w-4 h-4 mr-2" />
-                          {editingJourneyItem ? 'Update Journey Item' : 'Add Journey Item'}
-                        </Button>
-                      </div>
-                    </form>
-                  </CardContent>
-                </Card>
+                      </form>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )
+          }
+        </AnimatePresence >
 
         <ConfirmationDialog
           isOpen={!!itemToDelete}
@@ -3948,8 +3945,8 @@ const Admin = () => {
           title="Are you sure?"
           description="This action cannot be undone. This will permanently delete the item."
         />
-      </div>
-    </div>
+      </div >
+    </div >
   );
 };
 

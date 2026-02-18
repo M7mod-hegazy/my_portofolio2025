@@ -56,8 +56,17 @@ const defaultData: AboutData = {
   ctaSubtitle: "Open to collaborations and new opportunities."
 };
 
+import * as SimpleIcons from "react-icons/si";
+
 // Helper to get icon component from string name
 const getIcon = (iconName: string) => {
+  // Check for Simple Icons (Si prefix)
+  if (iconName.startsWith("Si")) {
+    const IconComponent = (SimpleIcons as any)[iconName];
+    return IconComponent || Heart;
+  }
+
+  // Check Lucide Icons
   const IconComponent = (LucideIcons as any)[iconName];
   return IconComponent || Heart;
 };

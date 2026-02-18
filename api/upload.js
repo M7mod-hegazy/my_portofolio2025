@@ -82,24 +82,39 @@ export default async function handler(req, res) {
     }
 
     const uploadPromises = req.files.map(async (file) => {
+      // Base options
       const options = {
-        public_id: `${Date.now()}_${file.originalname.split('.')[0]}`,
+        overwrite: true,
       };
 
       // Special handling for different file types
       if (file.mimetype === 'application/pdf') {
         options.resource_type = 'raw';
         options.folder = 'portfolio/documents';
-      } else if (file.mimetype.startsWith('image/')) {
-        options.resource_type = 'image';
-        options.folder = 'portfolio/images';
-        options.transformation = [
-          { width: 1200, height: 800, crop: 'limit', quality: 'auto:good' }
-        ];
+        // For raw files, we MUST include the extension in public_id so the URL has it
+        options.public_id = `${Date.now()}_${file.originalname}`;
+      } else {
+        // For images, we strip extension and let Cloudinary handle format
+        const nameWithoutExt = file.originalname.split('.').slice(0, -1).join('.');
+        options.public_id = `${Date.now()}_${nameWithoutExt}`;
+
+        if (file.mimetype.startsWith('image/')) {
+          options.resource_type = 'image';
+          options.folder = 'portfolio/images';
+          options.transformation = [
+            { width: 1200, height: 800, crop: 'limit', quality: 'auto:good' }
+          ];
+        }
       }
 
+      // Log options for debugging
+      console.log(`[DEBUG] Uploading file: ${file.originalname}`);
+      console.log(`[DEBUG] Upload options:`, JSON.stringify(options, null, 2));
+
       const result = await uploadToCloudinary(file.buffer, options);
-      
+
+      console.log(`[DEBUG] Cloudinary Result for ${file.originalname}:`, JSON.stringify(result, null, 2));
+
       return {
         originalName: file.originalname,
         url: result.secure_url,
@@ -121,19 +136,19 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Upload error:', error);
-    
+
     if (error.message.includes('File too large')) {
       return res.status(400).json({ success: false, error: 'File size too large. Maximum 10MB allowed.' });
     }
-    
+
     if (error.message.includes('Only images and PDF files are allowed')) {
       return res.status(400).json({ success: false, error: 'Only images and PDF files are allowed.' });
     }
 
-    res.status(500).json({ 
-      success: false, 
-      error: 'Upload failed', 
-      details: error.message 
+    res.status(500).json({
+      success: false,
+      error: 'Upload failed',
+      details: error.message
     });
   }
 }

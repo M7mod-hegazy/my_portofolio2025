@@ -5,9 +5,11 @@ import { X, Upload } from 'lucide-react';
 interface ImageUploadProps {
   onFilesChange: (files: File[]) => void;
   multiple?: boolean;
+  maxFiles?: number;
+  accept?: string;
 }
 
-export const ImageUpload = ({ onFilesChange, multiple = false }: ImageUploadProps) => {
+export const ImageUpload = ({ onFilesChange, multiple = false, maxFiles, accept }: ImageUploadProps) => {
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [dragActive, setDragActive] = useState(false);

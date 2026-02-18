@@ -96,8 +96,9 @@ export const HeroAdmin = () => {
                     </NeonButton>
                 </div>
 
-                <GlassPanel className="p-6 space-y-6">
-                    <div className="space-y-4">
+                <GlassPanel className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Greeting & Subtitle - Row 1 */}
                         <div className="space-y-2">
                             <Label className="text-cyan-400 text-xs uppercase tracking-wider font-semibold">Greeting Text</Label>
                             <Input
@@ -106,16 +107,6 @@ export const HeroAdmin = () => {
                                 className="bg-black/40 border-white/10 text-white focus:border-cyan-500/50 transition-all"
                             />
                         </div>
-
-                        <div className="space-y-2">
-                            <Label className="text-cyan-400 text-xs uppercase tracking-wider font-semibold">Main Title</Label>
-                            <Input
-                                value={data.title}
-                                onChange={(e) => handleChange('title', e.target.value)}
-                                className="bg-black/40 border-white/10 text-white font-bold text-lg focus:border-cyan-500/50 transition-all h-12"
-                            />
-                        </div>
-
                         <div className="space-y-2">
                             <Label className="text-cyan-400 text-xs uppercase tracking-wider font-semibold">Subtitle</Label>
                             <Input
@@ -125,38 +116,52 @@ export const HeroAdmin = () => {
                             />
                         </div>
 
-                        <div className="space-y-2">
+                        {/* Title - Row 2 (Full Width) */}
+                        <div className="col-span-1 md:col-span-2 space-y-2">
+                            <Label className="text-cyan-400 text-xs uppercase tracking-wider font-semibold">Main Title</Label>
+                            <Input
+                                value={data.title}
+                                onChange={(e) => handleChange('title', e.target.value)}
+                                className="bg-black/40 border-white/10 text-white font-bold text-lg focus:border-cyan-500/50 transition-all h-12"
+                            />
+                        </div>
+
+                        {/* Description - Row 3 (Full Width) */}
+                        <div className="col-span-1 md:col-span-2 space-y-2">
                             <Label className="text-cyan-400 text-xs uppercase tracking-wider font-semibold">Description</Label>
                             <Textarea
                                 value={data.description}
                                 onChange={(e) => handleChange('description', e.target.value)}
-                                className="bg-black/40 border-white/10 text-white min-h-[120px] focus:border-cyan-500/50 transition-all resize-none"
+                                className="bg-black/40 border-white/10 text-white min-h-[100px] focus:border-cyan-500/50 transition-all resize-none"
                             />
                         </div>
-                    </div>
-                </GlassPanel>
 
-                <GlassPanel className="p-6 space-y-6">
-                    <div className="flex items-center justify-between">
-                        <Label className="text-white">Show Social Links</Label>
-                        <Switch
-                            checked={data.socialLinks}
-                            onCheckedChange={(checked) => handleChange('socialLinks', checked)}
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label className="text-gray-400 text-xs uppercase">Resume URL</Label>
-                        <div className="flex gap-2">
-                            <Input
-                                value={data.resumeUrl}
-                                onChange={(e) => handleChange('resumeUrl', e.target.value)}
-                                className="bg-black/40 border-white/10 text-white"
-                                placeholder="/resume.pdf"
-                            />
-                            <NeonButton variant="ghost" size="icon" className="w-10 h-10 p-0">
-                                <RefreshCw className="h-4 w-4" />
-                            </NeonButton>
+                        {/* Settings Divider */}
+                        <div className="col-span-1 md:col-span-2 pt-4 border-t border-white/5">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                                <div className="space-y-2">
+                                    <Label className="text-gray-400 text-xs uppercase tracking-wider">Resume URL</Label>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            value={data.resumeUrl}
+                                            onChange={(e) => handleChange('resumeUrl', e.target.value)}
+                                            className="bg-black/40 border-white/10 text-white"
+                                            placeholder="/resume.pdf"
+                                        />
+                                        <NeonButton variant="ghost" size="icon" className="w-10 h-10 p-0 shrink-0">
+                                            <RefreshCw className="h-4 w-4" />
+                                        </NeonButton>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/5 h-10">
+                                    <Label className="text-white text-sm cursor-pointer" htmlFor="social-switch">Show Social Links</Label>
+                                    <Switch
+                                        id="social-switch"
+                                        checked={data.socialLinks}
+                                        onCheckedChange={(checked) => handleChange('socialLinks', checked)}
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </GlassPanel>

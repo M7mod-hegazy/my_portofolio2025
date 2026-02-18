@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { LayoutWrapper } from "./components/LayoutWrapper";
 import { ThemeProvider } from "./context/ThemeContext";
+import { ModalProvider } from "./context/ModalContext";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { AnalyticsProvider } from "./components/AnalyticsProvider";
 import { AdminLayout } from "./components/admin/layout/AdminLayout";
@@ -33,42 +34,44 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
-      <AnalyticsProvider>
-        <TooltipProvider>
-          <LayoutWrapper>
-            <BrowserRouter>
-              <ScrollToTop />
-              <Suspense fallback={<AnimatePresence><LoadingScreen /></AnimatePresence>}>
-                <Routes>
-                  {/* Public Routes */}
-                  <Route path="/" element={<Index />} />
+      <ModalProvider>
+        <AnalyticsProvider>
+          <TooltipProvider>
+            <LayoutWrapper>
+              <BrowserRouter>
+                <ScrollToTop />
+                <Suspense fallback={<AnimatePresence><LoadingScreen /></AnimatePresence>}>
+                  <Routes>
+                    {/* Public Routes */}
+                    <Route path="/" element={<Index />} />
 
-                  {/* Admin Routes */}
-                  <Route path="/admin" element={<AdminLayout />}>
-                    <Route index element={<DashboardHome />} />
-                    <Route path="dashboard" element={<DashboardHome />} />
-                    <Route path="hero" element={<HeroAdmin />} />
-                    <Route path="skills" element={<SkillsAdmin />} />
-                    <Route path="projects" element={<ProjectsAdmin />} />
-                    <Route path="journey" element={<JourneyAdmin />} />
-                    <Route path="services" element={<ServicesAdmin />} />
-                    <Route path="settings" element={<SettingsAdmin />} />
-                    <Route path="about" element={<AboutAdmin />} />
-                    <Route path="certifications" element={<CertificationsAdmin />} />
-                    <Route path="messages" element={<MessagesAdmin />} />
-                  </Route>
+                    {/* Admin Routes */}
+                    <Route path="/admin" element={<AdminLayout />}>
+                      <Route index element={<DashboardHome />} />
+                      <Route path="dashboard" element={<DashboardHome />} />
+                      <Route path="hero" element={<HeroAdmin />} />
+                      <Route path="skills" element={<SkillsAdmin />} />
+                      <Route path="projects" element={<ProjectsAdmin />} />
+                      <Route path="journey" element={<JourneyAdmin />} />
+                      <Route path="services" element={<ServicesAdmin />} />
+                      <Route path="settings" element={<SettingsAdmin />} />
+                      <Route path="about" element={<AboutAdmin />} />
+                      <Route path="certifications" element={<CertificationsAdmin />} />
+                      <Route path="messages" element={<MessagesAdmin />} />
+                    </Route>
 
-                  {/* Legacy/Utility Routes */}
-                  <Route path="/seed" element={<Seed />} />
+                    {/* Legacy/Utility Routes */}
+                    <Route path="/seed" element={<Seed />} />
 
-                  {/* 404 */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-            </BrowserRouter>
-          </LayoutWrapper>
-        </TooltipProvider>
-      </AnalyticsProvider>
+                    {/* 404 */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
+              </BrowserRouter>
+            </LayoutWrapper>
+          </TooltipProvider>
+        </AnalyticsProvider>
+      </ModalProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );

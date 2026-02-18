@@ -24,7 +24,7 @@ const SPRING_CONFIG = {
     mass: 0.75,
     restDelta: 0.005,
     duration: 0.3,
-}
+} as const
 
 const blurVariants: Variants = {
     hidden: {

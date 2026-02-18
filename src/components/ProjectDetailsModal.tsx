@@ -1,10 +1,10 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Github, Globe, X, Layers, Code, Cpu } from "lucide-react";
-import { motion } from "framer-motion";
+import { Github, Globe, Layers, Code, Cpu } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect } from "react";
+import { ThumbnailCarousel, CarouselItem } from "@/components/ui/thumbnail-carousel";
 
 interface ProjectDetailsModalProps {
   project: any;
@@ -13,7 +13,9 @@ interface ProjectDetailsModalProps {
 }
 
 export const ProjectDetailsModal = ({ project, isOpen, onClose }: ProjectDetailsModalProps) => {
+
   // Lock body scroll when modal is open
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -29,38 +31,65 @@ export const ProjectDetailsModal = ({ project, isOpen, onClose }: ProjectDetails
     };
   }, [isOpen]);
 
+  // Reset active video when modal closes
+
+
   if (!project) return null;
+
+  // Detect videos — from `videos[]` field and also from `images[]` (legacy fallback)
+  const isVideoUrl = (url: string) => /\.(mp4|webm|mov|avi|mkv)/i.test(url) || url.includes('/video/');
+  const videosFromField = project.videos || [];
+  const videosFromImages = (project.images || []).filter((url: string) => isVideoUrl(url));
+  const allVideos: string[] = [...new Set([...videosFromField, ...videosFromImages])];
+  const pureImages: string[] = (project.images || []).filter((url: string) => !isVideoUrl(url));
+
+  // Extract filename from URL
+  const getVideoName = (url: string, idx: number) => {
+    try {
+      const parts = url.split('/');
+      const raw = parts[parts.length - 1].split('?')[0];
+      const decoded = decodeURIComponent(raw);
+      // Limit length
+      return decoded.length > 30 ? decoded.slice(0, 27) + '...' : decoded;
+    } catch {
+      return `Video ${idx + 1}`;
+    }
+  };
+
+  const carouselItems: CarouselItem[] = [
+    // Videos first
+    ...allVideos.map((url, i): CarouselItem => ({
+      id: `video-${i}`,
+      url: url as string,
+      type: 'video',
+      title: getVideoName(url as string, i)
+    })),
+    // Then images
+    ...pureImages.map((url, i): CarouselItem => ({
+      id: `image-${i}`,
+      url: url as string,
+      type: 'image',
+      title: project.title
+    }))
+  ];
+
+  // Fallback if no images found in array but project.image exists
+  if (carouselItems.length === 0 && project.image) {
+    carouselItems.push({
+      id: 'main-image',
+      url: project.image,
+      type: 'image',
+      title: project.title
+    });
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-[calc(100%-2rem)] md:w-[calc(100%-4rem)] max-w-none h-[90vh] p-0 bg-background/95 backdrop-blur-2xl border-white/20 overflow-hidden shadow-2xl">
         <ScrollArea className="h-full w-full">
           <div className="grid grid-cols-1 lg:grid-cols-2 h-full">
-            {/* Visual Side */}
-            <div className="relative h-64 lg:h-full bg-black/50 flex items-center justify-center p-4 md:p-8">
-              <div className="relative w-full aspect-video lg:aspect-auto lg:h-full rounded-xl overflow-hidden shadow-2xl border border-white/10">
-                <img
-                  src={project.image}
-                  alt={project.title}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                <div className="absolute bottom-4 md:bottom-6 left-4 md:left-6 right-4 md:right-6">
-                  <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">{project.title}</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {project.liveUrl && (
-                      <Button size="sm" variant="secondary" onClick={() => window.open(project.liveUrl, '_blank')}>
-                        <Globe className="w-4 h-4 mr-2" /> Live Demo
-                      </Button>
-                    )}
-                    {project.githubUrl && (
-                      <Button size="sm" variant="outline" onClick={() => window.open(project.githubUrl, '_blank')}>
-                        <Github className="w-4 h-4 mr-2" /> Source Code
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
+            <div className="relative bg-black/50 flex flex-col p-4 md:p-8 gap-4 justify-center items-center backdrop-blur-sm">
+              <ThumbnailCarousel items={carouselItems} />
             </div>
 
             {/* Details Side */}
@@ -119,6 +148,6 @@ export const ProjectDetailsModal = ({ project, isOpen, onClose }: ProjectDetails
           </div>
         </ScrollArea>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 };
