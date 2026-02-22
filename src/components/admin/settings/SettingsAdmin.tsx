@@ -24,6 +24,7 @@ interface ContactDB {
 
 interface CVDB {
     url: string;
+    filename?: string;
     updatedAt: string;
 }
 
@@ -77,13 +78,12 @@ export const SettingsAdmin = () => {
         }
     };
 
-    const handleSaveCV = async (url: string) => {
-        console.log("[DEBUG] handleSaveCV called with URL:", url);
+    const handleSaveCV = async (url: string, filename?: string) => {
         try {
             const res = await fetch('/api/cv', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url })
+                body: JSON.stringify({ url, filename: filename || '' })
             });
             const json = await res.json();
             if (json.success) {
@@ -201,9 +201,10 @@ export const SettingsAdmin = () => {
                         <div className="max-w-xl mx-auto space-y-4">
                             <CVUploadArea
                                 currentUrl={cv?.url || ""}
-                                onUpload={(url) => {
-                                    setCv(prev => prev ? { ...prev, url } : { url, updatedAt: new Date().toISOString() });
-                                    handleSaveCV(url);
+                                currentFilename={cv?.filename || ""}
+                                onUpload={(url, filename) => {
+                                    setCv(prev => prev ? { ...prev, url, filename } : { url, filename, updatedAt: new Date().toISOString() });
+                                    handleSaveCV(url, filename);
                                 }}
                             />
 
@@ -222,16 +223,40 @@ export const SettingsAdmin = () => {
 
 // ─── Sub-Components ──────────────────────────────────────────────────
 
-function CVUploadArea({ currentUrl, onUpload }: { currentUrl: string, onUpload: (url: string) => void }) {
+function CVUploadArea({ currentUrl, currentFilename, onUpload }: { currentUrl: string, currentFilename?: string, onUpload: (url: string, filename?: string) => void }) {
     const [isDragOver, setIsDragOver] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [inputType, setInputType] = useState<'upload' | 'link'>('upload');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // If we have a URL, determine if it looks like a filename, stripping timestamp prefix
+    // Display filename: prefer stored filename, then fallback to URL basename
     const rawFileName = currentUrl ? currentUrl.split('/').pop() || "" : "No file selected";
-    const fileName = rawFileName.replace(/^\d+_/, '');
-    const isPdf = currentUrl?.toLowerCase().endsWith('.pdf');
+    const fileName = currentFilename || rawFileName.replace(/^cv_\d+_/, '').replace(/^\d+_/, '');
+    const isPdf = currentUrl?.toLowerCase().includes('.pdf') || currentFilename?.toLowerCase().endsWith('.pdf');
+
+    // Fetch-blob download: reads the Content-Disposition filename set by the server
+    const handleDownload = async () => {
+        try {
+            const response = await fetch('/api/cv/download');
+            const disposition = response.headers.get('Content-Disposition');
+            let name = fileName || 'resume.pdf';
+            if (disposition) {
+                const m = disposition.match(/filename="?([^"\n]+)"?/);
+                if (m) name = m[1];
+            }
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Download failed:', err);
+        }
+    };
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
@@ -254,7 +279,6 @@ function CVUploadArea({ currentUrl, onUpload }: { currentUrl: string, onUpload: 
     };
 
     const handleFileUpload = async (file: File) => {
-        console.log("[DEBUG] Uploading file:", file.name);
         setIsUploading(true);
         const formData = new FormData();
         formData.append('files', file); // API expects 'files'
@@ -267,10 +291,10 @@ function CVUploadArea({ currentUrl, onUpload }: { currentUrl: string, onUpload: 
 
             if (res.ok) {
                 const result = await res.json();
-                // Expecting { data: [{ url: "..." }] }
+                // Expecting { data: [{ url: "...", filename: "..." }] }
                 if (result.data && result.data.length > 0) {
-                    const newUrl = result.data[0].url;
-                    onUpload(newUrl);
+                    const uploadedFile = result.data[0];
+                    onUpload(uploadedFile.url, uploadedFile.filename || file.name);
                     toast.success("CV uploaded successfully");
                 }
             } else {
@@ -302,13 +326,16 @@ function CVUploadArea({ currentUrl, onUpload }: { currentUrl: string, onUpload: 
                     <Button variant="ghost" size="sm" onClick={() => window.open(currentUrl, '_blank')} className="hover:bg-white/10">
                         View
                     </Button>
+                    <Button variant="ghost" size="sm" onClick={handleDownload} className="hover:bg-white/10 text-purple-400">
+                        <Upload className="w-3 h-3 mr-1 rotate-180" />
+                        Download
+                    </Button>
                     <Button variant="destructive" size="sm" onClick={() => {
-                        console.log("[DEBUG] Delete CV Action triggered");
-                        onUpload("");
+                        onUpload("", "");
                         toast.success("CV removed");
                     }} className="bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/50">
                         <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
+                        Remove
                     </Button>
                 </div>
                 <div className="absolute top-2 right-2 text-[10px] text-gray-600 cursor-pointer hover:text-purple-400" onClick={() => setInputType('link')}>

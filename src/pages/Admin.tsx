@@ -269,7 +269,7 @@ const Admin = () => {
     whatsapp: '',
     messenger: ''
   });
-  const [currentCV, setCurrentCV] = useState(null);
+  const [currentCV, setCurrentCV] = useState<{ url: string; filename?: string; updatedAt: string } | null>(null);
   const [autoServiceIcon, setAutoServiceIcon] = useState([false, false, false, false]);
   const [showSkillSuggestions, setShowSkillSuggestions] = useState(false);
   const [filteredSkillSuggestions, setFilteredSkillSuggestions] = useState<Skill[]>([]);
@@ -3071,7 +3071,22 @@ const Admin = () => {
                           </div>
                         </div>
                         <Button
-                          onClick={() => window.open(currentCV.url, '_blank')}
+                          onClick={async () => {
+                            if (!currentCV) return;
+                            try {
+                              const response = await fetch('/api/cv/download');
+                              const disposition = response.headers.get('Content-Disposition');
+                              let name = currentCV.filename || 'resume.pdf';
+                              if (disposition) { const m = disposition.match(/filename="?([^"\n]+)"?/); if (m) name = m[1]; }
+                              const blob = await response.blob();
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url; a.download = name;
+                              document.body.appendChild(a); a.click();
+                              document.body.removeChild(a);
+                              URL.revokeObjectURL(url);
+                            } catch (err) { console.error('Download failed:', err); }
+                          }}
                           className="w-full bg-gradient-to-r from-blue-500 to-purple-600"
                         >
                           <FileText className="w-4 h-4 mr-2" />

@@ -25,6 +25,8 @@ interface ContactInfo {
 export const HeroSection = ({ previewData }: { previewData?: HeroData }) => {
   const [heroData, setHeroData] = useState<HeroData | null>(null);
   const [contactInfo, setContactInfo] = useState<ContactInfo>({});
+  const [cvUrl, setCvUrl] = useState<string | null>(null);
+  const [cvFilename, setCvFilename] = useState<string>('resume.pdf');
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -71,6 +73,19 @@ export const HeroSection = ({ previewData }: { previewData?: HeroData }) => {
       }
     };
 
+    const fetchCvData = async () => {
+      try {
+        const response = await fetch('/api/cv');
+        const json = await response.json();
+        if (json.success && json.data && json.data.url) {
+          setCvUrl(json.data.url);
+          if (json.data.filename) setCvFilename(json.data.filename);
+        }
+      } catch (error) {
+        console.error('HeroSection: Error fetching CV:', error);
+      }
+    };
+
     // If preview data is provided, use it directly (Admin Mode)
     if (previewData) {
       console.log("HeroSection: Using previewData", previewData);
@@ -81,6 +96,7 @@ export const HeroSection = ({ previewData }: { previewData?: HeroData }) => {
       fetchHeroData();
     }
     fetchContactInfo();
+    fetchCvData();
   }, [previewData]);
 
   if (!heroData || !isMounted) { // Added !isMounted to loading condition
@@ -170,10 +186,10 @@ export const HeroSection = ({ previewData }: { previewData?: HeroData }) => {
           transition={{ delay: 1.5, duration: 1 }}
           className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center items-center mb-8 md:mb-12 px-4"
         >
-          {heroData.resumeUrl && (
+          {cvUrl && (
             <motion.a
-              href={heroData.resumeUrl}
-              download
+              href="/api/cv/download"
+              download={cvFilename}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="w-full sm:w-auto px-8 py-3.5 md:px-8 md:py-3 rounded-full bg-gradient-to-r from-purple-600 to-cyan-500 text-white text-[13px] md:text-base font-semibold shadow-lg shadow-purple-500/50 hover:shadow-purple-500/70 transition-all border border-white/10 text-center min-h-[48px] flex items-center justify-center"

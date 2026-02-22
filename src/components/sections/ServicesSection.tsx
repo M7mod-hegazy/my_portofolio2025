@@ -104,23 +104,23 @@ interface Service {
     title: string;
     description: string;
     icon: string;
+    highlight?: string;
+    features?: string[];
+    stats?: { label: string; value: string }[];
 }
+
+const DEFAULT_FEATURES = ["Custom Solutions", "Modern Technologies", "Fast Delivery", "24/7 Support"];
+const DEFAULT_STATS = [
+    { label: "Projects", value: "50+" },
+    { label: "Satisfaction", value: "100%" },
+    { label: "Experience", value: "5+ Yrs" }
+];
 
 const getIcon = (iconName: string) => {
     const IconComponent = (LucideIcons as any)[iconName];
     return IconComponent || LucideIcons.Briefcase;
 };
 
-// Extended service info
-const serviceExtras = {
-    features: ["Custom Solutions", "Modern Technologies", "Fast Delivery", "24/7 Support"],
-    highlight: "Premium quality guaranteed",
-    stats: [
-        { label: "Projects", value: "50+" },
-        { label: "Satisfaction", value: "100%" },
-        { label: "Experience", value: "5+ Yrs" }
-    ]
-};
 
 export const ServicesSection = () => {
     const [services, setServices] = useState<Service[]>([]);
@@ -243,14 +243,14 @@ export const ServicesSection = () => {
                                                 >
                                                     <p className="text-[13px] text-gray-300 leading-relaxed mb-3">{service.description}</p>
                                                     <div className="grid grid-cols-2 gap-1.5 mb-3">
-                                                        {serviceExtras.features.map(f => (
+                                                        {(service.features || DEFAULT_FEATURES).map(f => (
                                                             <div key={f} className="flex items-center gap-1.5 text-[11px] text-gray-400">
                                                                 <CheckCircle2 size={10} className="text-violet-400" /> {f}
                                                             </div>
                                                         ))}
                                                     </div>
                                                     <div className="flex gap-2.5">
-                                                        {serviceExtras.stats.map(s => (
+                                                        {(service.stats || DEFAULT_STATS).map(s => (
                                                             <div key={s.label} className="bg-black/30 flex-1 p-2.5 rounded-lg text-center">
                                                                 <div className="text-[13px] font-semibold text-white">{s.value}</div>
                                                                 <div className="text-[9px] text-gray-500">{s.label}</div>
@@ -435,7 +435,7 @@ export const ServicesSection = () => {
                                                                     </h3>
                                                                     <div className="flex items-center gap-1.5 text-violet-400 text-[10px] md:text-xs">
                                                                         <Sparkles size={12} />
-                                                                        <span>{serviceExtras.highlight}</span>
+                                                                        <span>{service.highlight || "Premium quality guaranteed"}</span>
                                                                     </div>
                                                                 </div>
                                                             </motion.div>
@@ -457,7 +457,7 @@ export const ServicesSection = () => {
                                                                 animate={{ opacity: 1 }}
                                                                 transition={{ delay: 0.3 }}
                                                             >
-                                                                {serviceExtras.features.map((feature, i) => (
+                                                                {(service.features || DEFAULT_FEATURES).map((feature, i) => (
                                                                     <motion.div
                                                                         key={feature}
                                                                         initial={{ opacity: 0, x: -10 }}
@@ -479,7 +479,7 @@ export const ServicesSection = () => {
                                                             animate={{ opacity: 1, x: 0 }}
                                                             transition={{ delay: 0.4 }}
                                                         >
-                                                            {serviceExtras.stats.map((stat, i) => (
+                                                            {(service.stats || DEFAULT_STATS).map((stat, i) => (
                                                                 <motion.div
                                                                     key={stat.label}
                                                                     initial={{ opacity: 0, scale: 0.8 }}

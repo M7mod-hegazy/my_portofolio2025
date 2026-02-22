@@ -1,11 +1,10 @@
 import * as React from "react"
-import { Check, ChevronsUpDown, X, ZoomIn } from "lucide-react"
+import { Check, ChevronsUpDown, X, Plus } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
     Command,
-    CommandEmpty,
     CommandGroup,
     CommandInput,
     CommandItem,
@@ -32,6 +31,7 @@ interface MultiSelectProps {
     placeholder?: string
     className?: string
     color?: string
+    creatable?: boolean  // allow typing custom values
 }
 
 export function MultiSelect({
@@ -40,10 +40,12 @@ export function MultiSelect({
     onChange,
     placeholder = "Select items...",
     className,
-    color = "cyan"
+    color = "cyan",
+    creatable = true,
 }: MultiSelectProps) {
     const [open, setOpen] = React.useState(false)
     const [previewImage, setPreviewImage] = React.useState<string | null>(null)
+    const [search, setSearch] = React.useState("")
 
     const handleSelect = (value: string) => {
         if (selected.includes(value)) {
@@ -51,10 +53,18 @@ export function MultiSelect({
         } else {
             onChange([...selected, value])
         }
+        setSearch("")
     }
 
     const handleRemove = (value: string) => {
         onChange(selected.filter((item) => item !== value))
+    }
+
+    const addCustom = (val: string) => {
+        const trimmed = val.trim()
+        if (!trimmed || selected.includes(trimmed)) return
+        onChange([...selected, trimmed])
+        setSearch("")
     }
 
     const themeColorText = color === "purple" ? "text-purple-400" : "text-cyan-400";
@@ -62,6 +72,13 @@ export function MultiSelect({
     const themeColorBorder = color === "purple" ? "border-purple-500/20" : "border-cyan-500/20";
     const themeHoverBg = color === "purple" ? "hover:bg-purple-500/20" : "hover:bg-cyan-500/20";
     const themeSelectedBg = color === "purple" ? "aria-selected:bg-purple-500/20" : "aria-selected:bg-cyan-500/20";
+
+    // Filtered options based on current search
+    const filteredOptions = options.filter(o =>
+        o.label.toLowerCase().includes(search.toLowerCase())
+    )
+    const exactMatch = options.some(o => o.label.toLowerCase() === search.toLowerCase())
+    const showCreateOption = creatable && search.trim().length > 0 && !exactMatch && !selected.includes(search.trim())
 
     return (
         <div className={cn("space-y-3", className)}>
@@ -78,19 +95,43 @@ export function MultiSelect({
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent className="min-w-[300px] w-full p-0 bg-[#0c0c0c] border-white/10 text-white shadow-xl backdrop-blur-xl" align="start">
-                    <Command className="bg-transparent" filter={(value, search) => {
-                        if (value.toLowerCase().includes(search.toLowerCase())) return 1;
-                        return 0;
-                    }}>
-                        <CommandInput placeholder="Search..." className="text-white border-0 focus:ring-0" />
+                    <Command className="bg-transparent" shouldFilter={false}>
+                        <CommandInput
+                            placeholder="Type to search or add custom..."
+                            className="text-white border-0 focus:ring-0"
+                            value={search}
+                            onValueChange={setSearch}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && showCreateOption) {
+                                    e.preventDefault();
+                                    addCustom(search);
+                                    setOpen(false);
+                                }
+                            }}
+                        />
                         <CommandList className="custom-scrollbar max-h-[300px]">
-                            <CommandEmpty className="py-2 text-center text-xs text-gray-500">No item found.</CommandEmpty>
-                            <CommandGroup>
-                                {options.map((option) => (
+                            {/* Create option — shown when typed value doesn't match any existing */}
+                            {showCreateOption && (
+                                <CommandGroup heading="Add custom">
+                                    <CommandItem
+                                        value={`__create__${search}`}
+                                        onSelect={() => { addCustom(search); setOpen(false); }}
+                                        className="cursor-pointer hover:bg-white/10 transition-colors flex items-center gap-2 text-emerald-400"
+                                    >
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Add &ldquo;{search.trim()}&rdquo;
+                                    </CommandItem>
+                                </CommandGroup>
+                            )}
+                            <CommandGroup heading={filteredOptions.length ? "Suggestions" : undefined}>
+                                {filteredOptions.length === 0 && !showCreateOption && (
+                                    <p className="py-4 text-center text-xs text-gray-500">No suggestions. Type to add custom.</p>
+                                )}
+                                {filteredOptions.map((option) => (
                                     <CommandItem
                                         key={option.value}
-                                        value={option.label}
-                                        onSelect={() => handleSelect(option.value)}
+                                        value={option.value}
+                                        onSelect={() => { handleSelect(option.value); setOpen(false); }}
                                         className={cn(
                                             "cursor-pointer hover:bg-white/10 transition-colors flex items-center gap-2",
                                             themeSelectedBg
@@ -105,11 +146,8 @@ export function MultiSelect({
                                         />
                                         {option.image && (
                                             <div
-                                                className="w-6 h-6 rounded bg-white/10 overflow-hidden flex-shrink-0 cursor-zoom-in relative group/img"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setPreviewImage(option.image!);
-                                                }}
+                                                className="w-6 h-6 rounded bg-white/10 overflow-hidden flex-shrink-0 cursor-zoom-in"
+                                                onClick={(e) => { e.stopPropagation(); setPreviewImage(option.image!); }}
                                             >
                                                 <img src={option.image} alt="" className="w-full h-full object-cover" />
                                             </div>
@@ -127,7 +165,7 @@ export function MultiSelect({
                 <div className="flex flex-wrap gap-2">
                     {selected.map((value) => {
                         const option = options.find((o) => o.value === value)
-                        if (!option) return null;
+                        // Show badge for both known options AND custom values
                         return (
                             <Badge
                                 key={value}
@@ -140,24 +178,18 @@ export function MultiSelect({
                                     themeHoverBg
                                 )}
                             >
-                                {option.image && (
+                                {option?.image && (
                                     <div
                                         className="w-5 h-5 rounded-sm bg-black/20 overflow-hidden cursor-zoom-in hover:scale-110 transition-transform"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setPreviewImage(option.image!);
-                                        }}
+                                        onClick={(e) => { e.stopPropagation(); setPreviewImage(option.image!); }}
                                     >
                                         <img src={option.image} alt="" className="w-full h-full object-cover" />
                                     </div>
                                 )}
-                                <span className={cn("text-xs", !option.image && "pl-1")}>{option.label}</span>
+                                <span className={cn("text-xs", !option?.image && "pl-1")}>{option?.label ?? value}</span>
                                 <button
-                                    className={cn("ml-1 rounded-full p-0.5 transition-colors hover:bg-black/20")}
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleRemove(value)
-                                    }}
+                                    className="ml-1 rounded-full p-0.5 transition-colors hover:bg-black/20"
+                                    onClick={(e) => { e.stopPropagation(); handleRemove(value); }}
                                 >
                                     <X className="h-3 w-3" />
                                 </button>

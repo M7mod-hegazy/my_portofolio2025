@@ -5,6 +5,8 @@ import dotenv from 'dotenv';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import { Readable } from 'stream';
+import fs from 'fs';
+import path from 'path';
 
 dotenv.config();
 
@@ -12,6 +14,11 @@ export function createApiServer() {
     const app = express();
     app.use(cors());
     app.use(express.json());
+
+    // Serve locally-stored CV files (PDFs stored on disk to avoid Cloudinary access restrictions)
+    const CV_UPLOADS_DIR = path.join(process.cwd(), 'uploads', 'cv');
+    if (!fs.existsSync(CV_UPLOADS_DIR)) fs.mkdirSync(CV_UPLOADS_DIR, { recursive: true });
+    app.use('/cv-files', express.static(CV_UPLOADS_DIR));
 
     // Request Logging Middleware
     app.use((req, res, next) => {
@@ -134,6 +141,7 @@ export function createApiServer() {
 
     const CVSchema = new mongoose.Schema({
         url: String,
+        filename: String,
     }, { timestamps: true });
     const CV = mongoose.models.CV || mongoose.model('CV', CVSchema);
 
@@ -484,6 +492,98 @@ export function createApiServer() {
         }
     });
 
+    // CV Download — serves local PDF files directly, falls back to Cloudinary signed URL for legacy entries
+    app.get('/cv/download', async (req: Request, res: Response) => {
+        try {
+            const cv = await CV.findOne().sort({ createdAt: -1 });
+            if (!cv || !cv.url) {
+                return res.status(404).json({ success: false, error: 'No CV uploaded yet.' });
+            }
+
+            const filename = (cv.filename as string | undefined) || 'resume.pdf';
+            const cvUrl = cv.url as string;
+            console.log('[CV/DOWNLOAD] url:', cvUrl, '| file:', filename);
+
+            // Case 1: Local file URL (new approach — stored in uploads/cv/ on disk)
+            if (cvUrl.startsWith('/api/cv-files/')) {
+                const localFilename = cvUrl.replace('/api/cv-files/', '');
+                const filePath = path.join(process.cwd(), 'uploads', 'cv', localFilename);
+                if (!fs.existsSync(filePath)) {
+                    return res.status(404).json({ success: false, error: 'CV file not found on server.' });
+                }
+                res.setHeader('Content-Type', 'application/pdf');
+                res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+                return res.sendFile(filePath);
+            }
+
+            // Case 2: Legacy Cloudinary URL — try signed delivery redirect
+            const uploadMatch = cvUrl.match(/\/upload\/(?:v\d+\/)?(.+)$/);
+            if (uploadMatch) {
+                const fullPath = uploadMatch[1];
+                const signedDeliveryUrl = cloudinary.url(fullPath, {
+                    resource_type: 'raw',
+                    type: 'upload',
+                    sign_url: true,
+                    secure: true,
+                });
+                console.log('[CV/DOWNLOAD] Legacy Cloudinary redirect:', signedDeliveryUrl);
+                return res.redirect(302, signedDeliveryUrl);
+            }
+
+            // Case 3: External URL — redirect directly
+            return res.redirect(302, cvUrl);
+        } catch (error) {
+            console.error('[CV/DOWNLOAD] ERROR:', (error as Error).message);
+            res.status(500).json({ success: false, error: (error as Error).message });
+        }
+    });
+
+
+    // CV Debug — returns diagnostic JSON (open this in the browser to diagnose)
+    // Visit: http://localhost:5173/api/cv/debug
+    app.get('/cv/debug', async (req: Request, res: Response) => {
+        try {
+            const cv = await CV.findOne().sort({ createdAt: -1 });
+            if (!cv || !cv.url) return res.json({ error: 'No CV in DB' });
+
+            const cvUrl = cv.url as string;
+            const uploadMatch = cvUrl.match(/\/upload\/(?:v\d+\/)?(.+)$/);
+            let fullPath = '', signedDeliveryUrl = '';
+
+            if (uploadMatch) {
+                fullPath = uploadMatch[1]; // "portfolio/cv_123_NAME.pdf"
+                signedDeliveryUrl = cloudinary.url(fullPath, {
+                    resource_type: 'raw',
+                    type: 'upload',
+                    sign_url: true,
+                    secure: true,
+                });
+            }
+
+            // Test HTTP status of both URLs
+            let directStatus = 0, signedStatus = 0;
+            try { directStatus = (await fetch(cvUrl)).status; } catch (e) { directStatus = -1; }
+            try { signedStatus = (await fetch(signedDeliveryUrl)).status; } catch (e) { signedStatus = -1; }
+
+            return res.json({
+                storedUrl: cvUrl,
+                filename: cv.filename,
+                extractedFullPath: fullPath,
+                generatedSignedDeliveryUrl: signedDeliveryUrl,
+                directUrlStatus: directStatus,
+                signedDeliveryUrlStatus: signedStatus,
+                cloudinaryConfig: {
+                    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+                    apiKeyPrefix: (process.env.CLOUDINARY_API_KEY || '').substring(0, 6) + '...',
+                    apiSecretSet: !!process.env.CLOUDINARY_API_SECRET,
+                    apiSecretLength: (process.env.CLOUDINARY_API_SECRET || '').length,
+                },
+            });
+        } catch (error) {
+            res.status(500).json({ error: (error as Error).message });
+        }
+    });
+
     // Contact Messages (form submissions)
     app.get('/messages', async (req: Request, res: Response) => {
         try {
@@ -606,24 +706,51 @@ export function createApiServer() {
                 return res.status(400).json({ success: false, error: 'No files uploaded' });
             }
 
-            console.log(`Uploading ${files.length} file(s) to Cloudinary...`);
+            console.log(`Uploading ${files.length} file(s)...`);
 
             const uploadPromises = files.map(file => {
+                const isPdf = file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
+
+                // PDFs: store locally to avoid Cloudinary raw file access restrictions (account-level 401)
+                if (isPdf) {
+                    return new Promise<object>((resolve, reject) => {
+                        const safeFilename = `cv_${Date.now()}_${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+                        const destPath = path.join(process.cwd(), 'uploads', 'cv', safeFilename);
+                        fs.writeFile(destPath, file.buffer, (err) => {
+                            if (err) {
+                                console.error('[Upload] Failed to save PDF locally:', err);
+                                reject(err);
+                            } else {
+                                // URL will be served by Express static: /api/cv-files/<filename>
+                                // In dev: http://localhost:5173/api/cv-files/<filename>
+                                const localUrl = `/api/cv-files/${safeFilename}`;
+                                console.log('[Upload] PDF saved locally:', destPath, '→', localUrl);
+                                resolve({
+                                    originalName: file.originalname,
+                                    filename: file.originalname,
+                                    url: localUrl,
+                                    size: file.size,
+                                    resource_type: 'local',
+                                });
+                            }
+                        });
+                    });
+                }
+
+                // Images & Videos: upload to Cloudinary as before
                 return new Promise((resolve, reject) => {
                     const isVideo = file.mimetype.startsWith('video/');
                     const uploadStream = cloudinary.uploader.upload_stream(
                         {
                             resource_type: 'auto',
                             folder: 'portfolio',
-                            timeout: 300000, // 5 min timeout for large files
+                            timeout: 300000,
                             ...(isVideo
                                 ? {
-                                    // Video: quality compression only (no resize during upload to avoid timeout)
                                     quality: 'auto:low',
-                                    chunk_size: 6000000, // 6MB chunks for large videos
+                                    chunk_size: 6000000,
                                 }
                                 : {
-                                    // Image: aggressive compression + auto format (WebP/AVIF)
                                     quality: 65,
                                     fetch_format: 'auto',
                                     width: 1920,
@@ -644,22 +771,24 @@ export function createApiServer() {
                                     publicId: result?.public_id,
                                     format: result?.format,
                                     resource_type: result?.resource_type,
-                                    originalSize: file.size,       // Original file size from multer
-                                    size: result?.bytes,           // Optimized size from Cloudinary
+                                    originalSize: file.size,
+                                    size: result?.bytes,
                                     width: result?.width,
-                                    height: result?.height
+                                    height: result?.height,
+                                    filename: file.originalname,
                                 });
                             }
                         }
                     );
 
-                    // Pipe buffer to upload stream
                     const readable = new Readable();
                     readable.push(file.buffer);
                     readable.push(null);
                     readable.pipe(uploadStream);
                 });
             });
+
+
 
             const results = await Promise.all(uploadPromises);
             res.status(200).json({ success: true, data: results });

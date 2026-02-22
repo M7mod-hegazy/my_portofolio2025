@@ -73,7 +73,7 @@ const getIcon = (iconName: string) => {
 
 export const AboutSection = () => {
   const [data, setData] = useState<AboutData>(defaultData);
-  const [currentCV, setCurrentCV] = useState<{ url: string } | null>(null);
+  const [currentCV, setCurrentCV] = useState<{ url: string; filename?: string } | null>(null);
   const [socialLinks, setSocialLinks] = useState<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(containerRef, { once: true, margin: "-100px" });
@@ -400,7 +400,24 @@ export const AboutSection = () => {
               <div className="flex gap-4 flex-shrink-0">
                 {currentCV && (
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button onClick={() => window.open(currentCV.url, '_blank')} className="bg-white text-black hover:bg-gray-100 px-6 py-5 rounded-xl font-semibold flex items-center gap-2">
+                    <Button
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/api/cv/download');
+                          const disposition = response.headers.get('Content-Disposition');
+                          let name = currentCV?.filename || 'resume.pdf';
+                          if (disposition) { const m = disposition.match(/filename="?([^"\n]+)"?/); if (m) name = m[1]; }
+                          const blob = await response.blob();
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url; a.download = name;
+                          document.body.appendChild(a); a.click();
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(url);
+                        } catch (err) { console.error('Download failed:', err); }
+                      }}
+                      className="bg-white text-black hover:bg-gray-100 px-6 py-5 rounded-xl font-semibold flex items-center gap-2"
+                    >
                       <Download size={18} />
                       Resume
                     </Button>

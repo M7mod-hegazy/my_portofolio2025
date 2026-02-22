@@ -10,7 +10,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Trash2, Save, GraduationCap, Briefcase, Code, LayoutTemplate, ChevronUp, ChevronDown, GripVertical, Loader2 } from "lucide-react";
+import { Plus, Trash2, Save, GraduationCap, Briefcase, Code, LayoutTemplate, ChevronUp, ChevronDown, GripVertical, Loader2, Eye, Zap, BookOpen, Trophy, Star, MapPin, Clock } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import * as SimpleIcons from "react-icons/si";
 import { GlassPanel } from "@/components/ui/glass-panel";
@@ -32,6 +32,7 @@ interface JourneyItemDB {
     icon: string;
     color: string;
     technologies: string[];
+    techLabel: string;
     achievements: string[];
     order: number;
 }
@@ -47,6 +48,278 @@ const PRESET_COLORS = [
     { name: "Gold", value: "#eab308", class: "bg-yellow-500" },
 ];
 
+// ─── Shared Icon Renderer ───────────────────────────────────────────────────
+const RenderIcon = ({ iconName, className, itemType }: { iconName?: string; className?: string; itemType?: string }) => {
+    const defaultIcon = itemType === 'education' ? 'GraduationCap' : itemType === 'project' ? 'Code' : 'Briefcase';
+    let finalIconName = iconName || defaultIcon;
+    if (itemType === 'education' && finalIconName === 'Briefcase') finalIconName = 'GraduationCap';
+    if (finalIconName.startsWith("http") || finalIconName.startsWith("/")) {
+        return <img src={finalIconName} className={cn("object-contain", className)} alt="" />;
+    }
+    const isSimple = finalIconName.startsWith("Si");
+    const IconLib = isSimple ? SimpleIcons : LucideIcons;
+    // @ts-ignore
+    const IconComp = IconLib[finalIconName] || (itemType === 'education' ? LucideIcons.GraduationCap : LucideIcons.Briefcase);
+    return <IconComp className={className} />;
+};
+
+// ─── PREVIEW: Work Card ─────────────────────────────────────────────────────
+const PreviewWorkCard = ({ item }: { item: JourneyItemDB }) => (
+    <div
+        className="relative p-5 rounded-xl bg-[#080808] border overflow-hidden"
+        style={{ borderColor: `${item.color}30`, boxShadow: `0 0 0 1px ${item.color}08, 0 20px 40px -12px rgba(0,0,0,0.6)` }}
+    >
+        {/* Grid bg */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:24px_24px] opacity-40" />
+        {/* Corner glow */}
+        <div className="absolute -top-20 -right-20 w-48 h-48 rounded-full blur-[80px] opacity-20" style={{ backgroundColor: item.color }} />
+
+        {/* Status */}
+        <div className="absolute top-3 right-3 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+            <span className="text-[9px] uppercase tracking-widest text-white/30 font-mono">Active</span>
+        </div>
+
+        {/* Header */}
+        <div className="flex items-start gap-3 mb-4 relative z-10">
+            <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center border-2 bg-black/60 shadow-xl shrink-0"
+                style={{ borderColor: `${item.color}60`, color: item.color }}
+            >
+                <RenderIcon iconName={item.icon} itemType={item.type} className="w-6 h-6" />
+            </div>
+            <div className="flex-1 min-w-0">
+                <h3 className="text-base font-bold text-white leading-tight mb-1 truncate">
+                    {item.title || <span className="text-white/20 italic">Job Title</span>}
+                </h3>
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="font-bold" style={{ color: item.color }}>
+                        {item.company || <span className="text-white/20 italic">Company</span>}
+                    </span>
+                    <span className="w-1 h-1 rounded-full bg-white/20" />
+                    <span className="text-white/40 font-mono">{item.period || item.year || '—'}</span>
+                </div>
+            </div>
+        </div>
+
+        {/* Description */}
+        {item.description && (
+            <div className="flex items-stretch gap-3 mb-4 relative z-10">
+                <div className="w-0.5 rounded-full shrink-0" style={{ backgroundColor: `${item.color}40` }} />
+                <p className="text-gray-400 text-xs leading-relaxed">{item.description}</p>
+            </div>
+        )}
+
+        {/* Tech Stack */}
+        {item.technologies?.length > 0 && (
+            <div className="mb-4 relative z-10">
+                {item.techLabel && (
+                    <span className="text-[9px] uppercase tracking-widest text-white/30 mb-1.5 block font-mono">{item.techLabel}</span>
+                )}
+                <div className="flex flex-wrap gap-1.5">
+                    {item.technologies.slice(0, 8).map((tech, i) => (
+                        <span
+                            key={i}
+                            className="px-2 py-0.5 rounded text-[10px] uppercase tracking-wider bg-white/5 border border-white/10 text-white/60 font-mono"
+                            style={{ borderColor: i === 0 ? `${item.color}50` : undefined }}
+                        >
+                            {tech}
+                        </span>
+                    ))}
+                </div>
+            </div>
+        )}
+
+        {/* Achievements */}
+        {item.achievements?.length > 0 && (
+            <div className="pt-3 border-t border-white/5 relative z-10">
+                <span className="text-[9px] uppercase tracking-widest text-white/30 mb-2 block font-mono">Key Impact</span>
+                <div className="space-y-1.5">
+                    {item.achievements.slice(0, 4).map((ach, i) => (
+                        <div key={i} className="flex items-start gap-2">
+                            <Zap size={10} className="shrink-0 mt-0.5" style={{ color: item.color }} />
+                            <span className="text-[12px] text-gray-400">{ach}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )}
+    </div>
+);
+
+// ─── PREVIEW: Education Card ─────────────────────────────────────────────────
+const PreviewEducationCard = ({ item }: { item: JourneyItemDB }) => (
+    <div className="relative p-5 rounded-2xl bg-gradient-to-br from-white/[0.07] via-white/[0.03] to-transparent border border-white/10 overflow-hidden backdrop-blur-md">
+        {/* Floating cap */}
+        <div className="absolute -top-6 -right-6 opacity-[0.03] pointer-events-none">
+            <GraduationCap size={140} />
+        </div>
+
+        {/* Year badge */}
+        <div className="absolute top-4 right-4">
+            <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/50 text-xs font-mono">
+                {item.year || '—'}
+            </div>
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-4 pb-4 border-b border-white/5">
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-white/15 to-white/5 border border-white/10 flex items-center justify-center text-white shrink-0 shadow-xl">
+                <RenderIcon iconName={item.icon} itemType="education" className="w-7 h-7" />
+            </div>
+            <div className="min-w-0">
+                <h3 className="text-base font-serif text-white tracking-wide leading-tight mb-0.5 truncate">
+                    {item.title || <span className="text-white/20 italic">Degree / Certification</span>}
+                </h3>
+                <p className="text-xs text-cyan-300/70 truncate">
+                    {item.company || <span className="text-white/20 italic">Institution</span>}
+                </p>
+            </div>
+        </div>
+
+        {/* Info grid */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
+            {item.location && (
+                <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center">
+                        <MapPin size={12} className="text-white/40" />
+                    </div>
+                    <div>
+                        <span className="text-[9px] uppercase tracking-widest text-white/30 block">Campus</span>
+                        <span className="text-white/70 text-xs">{item.location}</span>
+                    </div>
+                </div>
+            )}
+            {item.period && (
+                <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center">
+                        <Clock size={12} className="text-white/40" />
+                    </div>
+                    <div>
+                        <span className="text-[9px] uppercase tracking-widest text-white/30 block">Duration</span>
+                        <span className="text-white/70 text-xs">{item.period}</span>
+                    </div>
+                </div>
+            )}
+        </div>
+
+        {/* Coursework */}
+        {item.technologies?.length > 0 && (
+            <div className="mb-4">
+                <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-white/30 mb-2">
+                    <BookOpen size={10} /> {item.techLabel || "Key Coursework"}
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                    {item.technologies.slice(0, 6).map((tech, i) => (
+                        <span key={i} className="px-2.5 py-1 rounded-full bg-white/5 text-[11px] text-gray-300 border border-white/5 flex items-center gap-1.5">
+                            <span className="w-1 h-1 rounded-full bg-cyan-400" />
+                            {tech}
+                        </span>
+                    ))}
+                </div>
+            </div>
+        )}
+
+        {/* Honors */}
+        {item.achievements?.length > 0 && (
+            <div className="bg-gradient-to-r from-yellow-500/10 via-yellow-500/5 to-transparent rounded-xl p-3 border-l-4 border-yellow-500/50">
+                <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-yellow-400/80 mb-2 font-bold">
+                    <Trophy size={10} /> Honors &amp; Achievements
+                </span>
+                <div className="space-y-1.5">
+                    {item.achievements.slice(0, 4).map((ach, i) => (
+                        <div key={i} className="flex items-start gap-2 text-[12px] text-white/70">
+                            <Star size={10} className="shrink-0 mt-0.5 text-yellow-400/60" />
+                            {ach}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )}
+    </div>
+);
+
+// ─── PREVIEW: Project Card ───────────────────────────────────────────────────
+const PreviewProjectCard = ({ item }: { item: JourneyItemDB }) => (
+    <div
+        className="relative p-5 rounded-xl border overflow-hidden"
+        style={{ background: `linear-gradient(135deg, ${item.color}10, transparent)`, borderColor: `${item.color}30` }}
+    >
+        <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(ellipse_at_top_right,white,transparent_70%)]" />
+
+        <div className="flex items-start gap-3 mb-4 relative z-10">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center border-2 bg-black/50 shrink-0" style={{ borderColor: `${item.color}60`, color: item.color }}>
+                <RenderIcon iconName={item.icon} itemType="project" className="w-6 h-6" />
+            </div>
+            <div className="flex-1 min-w-0">
+                <h3 className="text-base font-bold text-white leading-tight truncate mb-0.5">
+                    {item.title || <span className="text-white/20 italic">Project Name</span>}
+                </h3>
+                <div className="flex items-center gap-2 text-xs">
+                    <span style={{ color: item.color }}>{item.company || 'Personal / Client'}</span>
+                    <span className="text-white/30">·</span>
+                    <span className="text-white/30 font-mono">{item.year || '—'}</span>
+                </div>
+            </div>
+        </div>
+
+        {item.description && (
+            <p className="text-gray-400 text-xs leading-relaxed mb-4 relative z-10">{item.description}</p>
+        )}
+
+        {item.technologies?.length > 0 && (
+            <div className="mb-4 relative z-10">
+                {item.techLabel && (
+                    <span className="text-[9px] uppercase tracking-widest mb-1.5 block font-mono" style={{ color: `${item.color}80` }}>{item.techLabel}</span>
+                )}
+                <div className="flex flex-wrap gap-1.5">
+                    {item.technologies.slice(0, 8).map((tech, i) => (
+                        <span key={i} className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/5 border border-white/10 text-white/60">
+                            {tech}
+                        </span>
+                    ))}
+                </div>
+            </div>
+        )}
+
+        {item.achievements?.length > 0 && (
+            <div className="pt-3 border-t relative z-10" style={{ borderColor: `${item.color}20` }}>
+                <span className="text-[9px] uppercase tracking-widest mb-2 block font-mono" style={{ color: `${item.color}80` }}>Key Features</span>
+                <div className="space-y-1.5">
+                    {item.achievements.slice(0, 4).map((ach, i) => (
+                        <div key={i} className="flex items-start gap-2">
+                            <span className="w-1 h-1 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: item.color }} />
+                            <span className="text-[12px] text-gray-400">{ach}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )}
+    </div>
+);
+
+// ─── Timeline Node Mini (for preview context) ─────────────────────────────
+const PreviewTimelineNode = ({ item }: { item: JourneyItemDB }) => {
+    if (item.type === 'education') {
+        return (
+            <div className="w-9 h-9 rounded-full bg-[#0a0a16] border-2 border-purple-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.25)]">
+                <GraduationCap size={16} className="text-purple-400" />
+            </div>
+        );
+    }
+    return (
+        <div
+            className="w-9 h-9 rounded-lg bg-[#0a0a16] border-2 flex items-center justify-center shadow-lg rotate-45"
+            style={{ borderColor: `${item.color}60`, boxShadow: `0 0 15px ${item.color}20` }}
+        >
+            <div className="-rotate-45">
+                <RenderIcon iconName={item.icon} itemType={item.type} className="w-4 h-4" style={{ color: item.color } as any} />
+            </div>
+        </div>
+    );
+};
+
+// ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 export const JourneyAdmin = () => {
     const [items, setItems] = useState<JourneyItemDB[]>([]);
     const [skills, setSkills] = useState<any[]>([]);
@@ -67,21 +340,17 @@ export const JourneyAdmin = () => {
         icon: "Briefcase",
         color: "#06b6d4",
         technologies: [],
+        techLabel: "Tech Stack",
         achievements: [],
         order: 0
     });
 
-    useEffect(() => {
-        fetchData();
-    }, []);
+    useEffect(() => { fetchData(); }, []);
 
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [journeyRes, skillsRes] = await Promise.all([
-                fetch('/api/journey'),
-                fetch('/api/skills')
-            ]);
+            const [journeyRes, skillsRes] = await Promise.all([fetch('/api/journey'), fetch('/api/skills')]);
             const journeyJson = await journeyRes.json();
             const skillsJson = await skillsRes.json();
             if (journeyJson.success) setItems(journeyJson.data);
@@ -99,14 +368,8 @@ export const JourneyAdmin = () => {
             const method = selectedId ? 'PUT' : 'POST';
             const url = selectedId ? `/api/journey/${selectedId}` : '/api/journey';
             const { _id, ...payload } = formData;
-
-            const res = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             const json = await res.json();
-
             if (json.success) {
                 toast.success(`Entry ${selectedId ? 'updated' : 'created'}`);
                 fetchData();
@@ -138,6 +401,7 @@ export const JourneyAdmin = () => {
         setFormData({
             ...item,
             technologies: item.technologies || [],
+            techLabel: item.techLabel || (item.type === 'education' ? 'Key Coursework' : 'Tech Stack'),
             achievements: item.achievements || [],
             icon: item.icon || (item.type === 'education' ? "GraduationCap" : "Briefcase"),
             color: item.color || "#06b6d4"
@@ -145,53 +409,26 @@ export const JourneyAdmin = () => {
     };
 
     const handleNew = () => {
+        const defaultLabel = 'Tech Stack';
         setSelectedId(null);
-        setFormData({
-            type: 'work',
-            title: "",
-            company: "",
-            location: "",
-            year: "",
-            period: "",
-            description: "",
-            icon: "Briefcase",
-            color: "#06b6d4",
-            technologies: [],
-            achievements: [],
-            order: items.length
-        });
+        setFormData({ type: 'work', title: "", company: "", location: "", year: "", period: "", description: "", icon: "Briefcase", color: "#06b6d4", technologies: [], techLabel: defaultLabel, achievements: [], order: items.length });
     };
 
-    // REORDER FUNCTIONS
     const moveItem = async (index: number, direction: 'up' | 'down') => {
         if (isReordering) return;
         const newIndex = direction === 'up' ? index - 1 : index + 1;
         if (newIndex < 0 || newIndex >= items.length) return;
-
         setIsReordering(true);
         const newItems = [...items];
         [newItems[index], newItems[newIndex]] = [newItems[newIndex], newItems[index]];
-
-        // Update local state for immediate feedback
         setItems(newItems);
-
-        // Prepare reorder payload
         const reorderData = newItems.map((item, i) => ({ id: item._id, order: i }));
-
         try {
-            const res = await fetch('/api/journey/reorder', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ items: reorderData })
-            });
+            const res = await fetch('/api/journey/reorder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: reorderData }) });
             const json = await res.json();
-            if (!json.success) {
-                toast.error("Failed to save order");
-                fetchData(); // Revert
-            }
+            if (!json.success) { toast.error("Failed to save order"); fetchData(); }
         } catch (err) {
-            toast.error("Failed to reorder");
-            fetchData();
+            toast.error("Failed to reorder"); fetchData();
         } finally {
             setIsReordering(false);
         }
@@ -199,34 +436,19 @@ export const JourneyAdmin = () => {
 
     const addAchievement = () => {
         if (!newAchievement.trim()) return;
-        setFormData(prev => ({
-            ...prev,
-            achievements: [...prev.achievements, newAchievement.trim()]
-        }));
+        setFormData(prev => ({ ...prev, achievements: [...prev.achievements, newAchievement.trim()] }));
         setNewAchievement("");
     };
 
     const removeAchievement = (index: number) => {
-        setFormData(prev => ({
-            ...prev,
-            achievements: prev.achievements.filter((_, i) => i !== index)
-        }));
+        setFormData(prev => ({ ...prev, achievements: prev.achievements.filter((_, i) => i !== index) }));
     };
 
     const renderIconPreview = (iconName: string, itemType?: string) => {
-        // Default icon based on item type
         const defaultIcon = itemType === 'education' ? 'GraduationCap' : itemType === 'project' ? 'Code' : 'Briefcase';
         let finalIconName = iconName || defaultIcon;
-
-        // FORCE CORRECT ICON PREVIEW
-        if (itemType === 'education' && finalIconName === 'Briefcase') {
-            finalIconName = 'GraduationCap';
-        }
-
-        if (finalIconName.startsWith("http") || finalIconName.startsWith("/")) {
-            return <img src={finalIconName} className="w-5 h-5 object-contain" alt="" />;
-        }
-
+        if (itemType === 'education' && finalIconName === 'Briefcase') finalIconName = 'GraduationCap';
+        if (finalIconName.startsWith("http") || finalIconName.startsWith("/")) return <img src={finalIconName} className="w-5 h-5 object-contain" alt="" />;
         const isSimple = finalIconName.startsWith("Si");
         const IconLib = isSimple ? SimpleIcons : LucideIcons;
         // @ts-ignore
@@ -237,20 +459,19 @@ export const JourneyAdmin = () => {
     };
 
     const getLabels = (type: string) => {
-        if (type === 'education') return { title: "Degree / Certification", company: "University / Institution", tech: "Relevant Courses / Skills", achievements: "Honors / Activities", icon: "GraduationCap" };
-        if (type === 'project') return { title: "Project Name", company: "Association / Client", tech: "Tech Stack", achievements: "Key Features", icon: "Code" };
-        return { title: "Job Title", company: "Company Name", tech: "Technologies Used", achievements: "Key Achievements", icon: "Briefcase" };
+        if (type === 'education') return { title: "Degree / Certification", company: "University / Institution", tech: "Relevant Courses / Skills", techLabelDefault: "Key Coursework", achievements: "Honors / Activities", icon: "GraduationCap" };
+        if (type === 'project') return { title: "Project Name", company: "Association / Client", tech: "Technologies / Tools", techLabelDefault: "Tech Stack", achievements: "Key Features", icon: "Code" };
+        return { title: "Job Title", company: "Company Name", tech: "Technologies Used", techLabelDefault: "Tech Stack", achievements: "Key Achievements", icon: "Briefcase" };
     };
 
     const labels = getLabels(formData.type);
 
-    if (isLoading) {
-        return <AdminLoader />;
-    }
+    if (isLoading) return <AdminLoader />;
 
     return (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 h-[calc(100vh-140px)]">
-            {/* List Column */}
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_1.2fr_1fr] gap-6 h-[calc(100vh-140px)]">
+
+            {/* ── Column 1: List ── */}
             <GlassPanel className="flex flex-col overflow-hidden h-full">
                 <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5 backdrop-blur-sm">
                     <h3 className="font-bold text-white flex items-center gap-2">
@@ -263,7 +484,6 @@ export const JourneyAdmin = () => {
                     </NeonButton>
                 </div>
 
-                {/* Order Instructions */}
                 <div className="px-4 py-2 bg-cyan-500/10 border-b border-cyan-500/20 text-xs text-cyan-400 flex items-center gap-2">
                     <GripVertical size={14} />
                     Use arrows to reorder timeline entries on the main page
@@ -286,40 +506,19 @@ export const JourneyAdmin = () => {
                         >
                             {/* Order Controls */}
                             <div className="flex flex-col gap-0.5 shrink-0">
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); moveItem(index, 'up'); }}
-                                    disabled={index === 0 || isReordering}
-                                    className={cn(
-                                        "p-1 rounded transition-all",
-                                        index === 0 ? "opacity-20 cursor-not-allowed" : "hover:bg-white/20 text-gray-400 hover:text-white"
-                                    )}
-                                >
+                                <button onClick={(e) => { e.stopPropagation(); moveItem(index, 'up'); }} disabled={index === 0 || isReordering}
+                                    className={cn("p-1 rounded transition-all", index === 0 ? "opacity-20 cursor-not-allowed" : "hover:bg-white/20 text-gray-400 hover:text-white")}>
                                     <ChevronUp size={14} />
                                 </button>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); moveItem(index, 'down'); }}
-                                    disabled={index === items.length - 1 || isReordering}
-                                    className={cn(
-                                        "p-1 rounded transition-all",
-                                        index === items.length - 1 ? "opacity-20 cursor-not-allowed" : "hover:bg-white/20 text-gray-400 hover:text-white"
-                                    )}
-                                >
+                                <button onClick={(e) => { e.stopPropagation(); moveItem(index, 'down'); }} disabled={index === items.length - 1 || isReordering}
+                                    className={cn("p-1 rounded transition-all", index === items.length - 1 ? "opacity-20 cursor-not-allowed" : "hover:bg-white/20 text-gray-400 hover:text-white")}>
                                     <ChevronDown size={14} />
                                 </button>
                             </div>
 
-                            {/* Order Number */}
-                            <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-gray-400 shrink-0">
-                                {index + 1}
-                            </div>
+                            <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-gray-400 shrink-0">{index + 1}</div>
+                            <div className="w-1 h-12 rounded-full transition-all shrink-0" style={{ backgroundColor: item.color }} />
 
-                            {/* Color Strip */}
-                            <div
-                                className="w-1 h-12 rounded-full transition-all"
-                                style={{ backgroundColor: item.color }}
-                            />
-
-                            {/* Content */}
                             <div className="flex-1 min-w-0" onClick={() => handleSelect(item)}>
                                 <div className="flex items-center gap-2">
                                     <div className="p-1.5 rounded-lg bg-black/40 shrink-0" style={{ color: item.color || '#06b6d4' }}>
@@ -332,7 +531,6 @@ export const JourneyAdmin = () => {
                                 </div>
                             </div>
 
-                            {/* Type Badge */}
                             <span className={cn(
                                 "text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider border shrink-0",
                                 item.type === 'education' ? "bg-purple-500/10 border-purple-500/20 text-purple-300" :
@@ -346,49 +544,48 @@ export const JourneyAdmin = () => {
                 </div>
             </GlassPanel>
 
-            {/* Editor Column */}
+            {/* ── Column 2: Editor ── */}
             <GlassPanel className="p-0 h-full flex flex-col overflow-hidden relative">
-                {/* Visual Preview Header */}
-                <div className="relative h-32 overflow-hidden shrink-0">
+                {/* Visual Header */}
+                <div className="relative h-28 overflow-hidden shrink-0">
                     <div className="absolute inset-0 opacity-20 transition-colors duration-500" style={{ backgroundColor: formData.color }} />
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a16]" />
                     <div className="absolute bottom-4 left-6 flex items-end gap-4">
                         <div
-                            className="w-16 h-16 rounded-2xl flex items-center justify-center bg-black/50 border border-white/20 backdrop-blur-md shadow-2xl"
-                            style={{ borderColor: formData.color, boxShadow: `0 0 30px ${formData.color}30` }}
+                            className="w-14 h-14 rounded-2xl flex items-center justify-center bg-black/50 border border-white/20 backdrop-blur-md shadow-2xl"
+                            style={{ borderColor: formData.color, boxShadow: `0 0 25px ${formData.color}30` }}
                         >
-                            <div style={{ color: formData.color }} className="scale-150">
+                            <div style={{ color: formData.color }} className="scale-125">
                                 {renderIconPreview(formData.icon)}
                             </div>
                         </div>
                         <div className="mb-1">
-                            <span className="text-xs font-mono uppercase tracking-widest text-white/50 block mb-1">
+                            <span className="text-xs font-mono uppercase tracking-widest text-white/50 block mb-0.5">
                                 {selectedId ? "EDITING MODE" : "CREATION MODE"}
                             </span>
-                            <h2 className="text-2xl font-bold text-white leading-none">
+                            <h2 className="text-xl font-bold text-white leading-none">
                                 {formData.title || "Untitled Role"}
                             </h2>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
-                    {/* Controls Row */}
-                    <div className="grid grid-cols-2 gap-6">
+                <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar">
+                    {/* Type + Year */}
+                    <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label className="text-cyan-400 text-xs uppercase tracking-wider font-semibold">Entry Type</Label>
-                            <Select
-                                value={formData.type}
-                                onValueChange={v => setFormData({
-                                    ...formData,
-                                    type: v as any,
+                            <Select value={formData.type} onValueChange={v => {
+                                const defaults: Record<string, string> = { work: 'Tech Stack', education: 'Key Coursework', project: 'Tech Stack' };
+                                const isDefault = Object.values(defaults).includes(formData.techLabel);
+                                setFormData({
+                                    ...formData, type: v as any,
+                                    techLabel: isDefault ? defaults[v] : formData.techLabel,
                                     icon: v === 'education' && formData.icon === 'Briefcase' ? 'GraduationCap' :
                                         v === 'work' && formData.icon === 'GraduationCap' ? 'Briefcase' : formData.icon
-                                })}
-                            >
-                                <SelectTrigger className="bg-white/5 border-white/10 text-white h-10">
-                                    <SelectValue />
-                                </SelectTrigger>
+                                });
+                            }}>
+                                <SelectTrigger className="bg-white/5 border-white/10 text-white h-10"><SelectValue /></SelectTrigger>
                                 <SelectContent className="bg-[#0a0a16] border-white/10 text-white">
                                     <SelectItem value="work"><div className="flex items-center gap-2"><Briefcase size={14} /> Work Experience</div></SelectItem>
                                     <SelectItem value="education"><div className="flex items-center gap-2"><GraduationCap size={14} /> Education</div></SelectItem>
@@ -398,12 +595,7 @@ export const JourneyAdmin = () => {
                         </div>
                         <div className="space-y-2">
                             <Label className="text-cyan-400 text-xs uppercase tracking-wider font-semibold">Timeline Year</Label>
-                            <Input
-                                value={formData.year}
-                                onChange={e => setFormData({ ...formData, year: e.target.value })}
-                                className="bg-white/5 border-white/10 text-white font-mono"
-                                placeholder="e.g. 2024"
-                            />
+                            <Input value={formData.year} onChange={e => setFormData({ ...formData, year: e.target.value })} className="bg-white/5 border-white/10 text-white font-mono" placeholder="e.g. 2024" />
                         </div>
                     </div>
 
@@ -412,12 +604,7 @@ export const JourneyAdmin = () => {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2 col-span-2">
                                 <Label className="text-gray-400 text-xs uppercase tracking-wider">{labels.title}</Label>
-                                <Input
-                                    value={formData.title}
-                                    onChange={e => setFormData({ ...formData, title: e.target.value })}
-                                    className="bg-black/20 border-white/10 text-white text-lg font-bold h-12"
-                                    placeholder={`Enter ${labels.title}...`}
-                                />
+                                <Input value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="bg-black/20 border-white/10 text-white text-base font-bold h-11" placeholder={`Enter ${labels.title}...`} />
                             </div>
                             <div className="space-y-2">
                                 <Label className="text-gray-400 text-xs uppercase tracking-wider">{labels.company}</Label>
@@ -427,69 +614,62 @@ export const JourneyAdmin = () => {
                                 <Label className="text-gray-400 text-xs uppercase tracking-wider">Location / Duration</Label>
                                 <Input value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} className="bg-black/20 border-white/10 text-white" placeholder="e.g. New York, NY" />
                             </div>
+                            <div className="space-y-2 col-span-2">
+                                <Label className="text-gray-400 text-xs uppercase tracking-wider">Period</Label>
+                                <Input value={formData.period} onChange={e => setFormData({ ...formData, period: e.target.value })} className="bg-black/20 border-white/10 text-white" placeholder="e.g. 2021 – 2024" />
+                            </div>
                         </div>
                     </div>
 
-                    {/* Styling Section */}
-                    <div className="space-y-4">
+                    {/* Visual Style */}
+                    <div className="space-y-3">
                         <div className="flex items-center justify-between">
                             <Label className="text-cyan-400 text-xs uppercase tracking-wider font-bold">Visual Style</Label>
                             <span className="text-[10px] text-gray-500">{formData.color}</span>
                         </div>
                         <div className="flex gap-4">
-                            <div className="w-[140px]">
+                            <div className="w-[130px]">
                                 <IconPicker value={formData.icon} onChange={icon => setFormData({ ...formData, icon })} />
                             </div>
                             <div className="flex-1 flex flex-wrap gap-2 items-center bg-white/5 p-2 rounded-lg border border-white/5">
                                 {PRESET_COLORS.map(c => (
-                                    <button
-                                        key={c.value}
-                                        onClick={() => setFormData({ ...formData, color: c.value })}
-                                        className={cn(
-                                            "w-6 h-6 rounded-full transition-all relative flex items-center justify-center",
-                                            c.class,
-                                            formData.color === c.value ? "scale-110 border-2 border-white" : "opacity-40 hover:opacity-100"
-                                        )}
-                                        title={c.name}
-                                    >
+                                    <button key={c.value} onClick={() => setFormData({ ...formData, color: c.value })}
+                                        className={cn("w-6 h-6 rounded-full transition-all relative flex items-center justify-center", c.class,
+                                            formData.color === c.value ? "scale-110 border-2 border-white" : "opacity-40 hover:opacity-100")} title={c.name}>
                                         {formData.color === c.value && <span className="text-black text-[10px] font-bold">✓</span>}
                                     </button>
                                 ))}
-                                <div className="w-px h-6 bg-white/10 mx-2" />
+                                <div className="w-px h-6 bg-white/10 mx-1" />
                                 <Input type="color" value={formData.color} onChange={e => setFormData({ ...formData, color: e.target.value })} className="w-8 h-8 p-0 border-0 rounded-md overflow-hidden cursor-pointer" />
                             </div>
                         </div>
                     </div>
 
                     {/* Rich Details */}
-                    <div className="space-y-6">
+                    <div className="space-y-5">
                         <div className="space-y-2">
-                            <Label className="text-cyan-400 text-xs uppercase tracking-wider">{labels.tech}</Label>
-                            <MultiSelect
-                                options={skills.map(s => ({ label: s.name, value: s.name, image: s.icon }))}
-                                selected={formData.technologies}
-                                onChange={(vals) => setFormData({ ...formData, technologies: vals })}
-                                placeholder={`Select ${labels.tech.toLowerCase()}...`}
-                            />
+                            <div className="flex items-center gap-2">
+                                <Label className="text-cyan-400 text-xs uppercase tracking-wider shrink-0">{labels.tech}</Label>
+                                <div className="flex-1 flex items-center gap-1.5 ml-auto">
+                                    <span className="text-[9px] text-white/30 uppercase tracking-widest font-mono shrink-0">Section Label:</span>
+                                    <Input
+                                        value={formData.techLabel}
+                                        onChange={e => setFormData({ ...formData, techLabel: e.target.value })}
+                                        className="h-6 text-[11px] bg-white/5 border-white/10 text-white/70 px-2 py-0 min-w-0"
+                                        placeholder={labels.techLabelDefault}
+                                    />
+                                </div>
+                            </div>
+                            <MultiSelect options={skills.map(s => ({ label: s.name, value: s.name, image: s.icon }))} selected={formData.technologies} onChange={(vals) => setFormData({ ...formData, technologies: vals })} placeholder={`Type or select ${labels.tech.toLowerCase()}...`} creatable={true} />
                         </div>
                         <div className="space-y-2">
                             <Label className="text-cyan-400 text-xs uppercase tracking-wider">Description</Label>
-                            <Textarea
-                                value={formData.description}
-                                onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                className="bg-black/20 border-white/10 text-white min-h-[100px] text-sm leading-relaxed"
-                            />
+                            <Textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} className="bg-black/20 border-white/10 text-white min-h-[90px] text-sm leading-relaxed" />
                         </div>
                         <div className="space-y-3">
                             <Label className="text-cyan-400 text-xs uppercase tracking-wider">{labels.achievements}</Label>
                             <div className="flex gap-2">
-                                <Input
-                                    value={newAchievement}
-                                    onChange={(e) => setNewAchievement(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && addAchievement()}
-                                    className="bg-black/20 border-white/10 text-white"
-                                    placeholder="Add detail..."
-                                />
+                                <Input value={newAchievement} onChange={(e) => setNewAchievement(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addAchievement()} className="bg-black/20 border-white/10 text-white" placeholder="Add detail..." />
                                 <NeonButton size="sm" onClick={addAchievement} icon={<Plus size={14} />}>Add</NeonButton>
                             </div>
                             <div className="space-y-1">
@@ -507,15 +687,84 @@ export const JourneyAdmin = () => {
                     </div>
                 </div>
 
-                {/* Fixed Footer */}
+                {/* Footer */}
                 <div className="p-4 border-t border-white/10 bg-[#0a0a16] z-20 shrink-0">
-                    <NeonButton onClick={handleSave} className="w-full text-lg font-bold" variant="primary" icon={isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}>
+                    <NeonButton onClick={handleSave} className="w-full text-base font-bold" variant="primary" icon={isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}>
                         {isSaving ? "SAVING..." : selectedId ? "UPDATE MILESTONE" : "CREATE MILESTONE"}
                     </NeonButton>
                     {selectedId && (
                         <button onClick={() => handleDelete(selectedId)} className="w-full mt-2 text-xs text-red-500 hover:text-red-400 uppercase tracking-widest hover:underline">
                             Delete Entry
                         </button>
+                    )}
+                </div>
+            </GlassPanel>
+
+            {/* ── Column 3: Live Preview ── */}
+            <GlassPanel className="flex flex-col overflow-hidden h-full">
+                {/* Preview Header */}
+                <div className="p-4 border-b border-white/10 flex items-center gap-2 bg-white/5 backdrop-blur-sm shrink-0">
+                    <Eye size={16} className="text-emerald-400" />
+                    <h3 className="font-bold text-white text-sm">Live Preview</h3>
+                    <span className="ml-auto text-[10px] text-white/30 uppercase tracking-wider font-mono">as seen on site</span>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-5">
+                    {/* Timeline Context Mockup */}
+                    <div className="relative pl-8">
+                        {/* Spine */}
+                        <div className="absolute left-3.5 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/10 to-transparent" />
+                        {/* Node */}
+                        <div className="absolute left-0 top-3">
+                            <PreviewTimelineNode item={formData} />
+                        </div>
+                        {/* Year label */}
+                        <div className="mb-3 ml-2">
+                            <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest">{formData.year || 'Year'}</span>
+                        </div>
+                        {/* Card */}
+                        {formData.type === 'education' ? (
+                            <PreviewEducationCard item={formData} />
+                        ) : formData.type === 'project' ? (
+                            <PreviewProjectCard item={formData} />
+                        ) : (
+                            <PreviewWorkCard item={formData} />
+                        )}
+                    </div>
+
+                    {/* All entries mini list */}
+                    {items.length > 0 && (
+                        <div className="space-y-2 pt-2">
+                            <div className="flex items-center gap-2 mb-3">
+                                <div className="h-px flex-1 bg-white/5" />
+                                <span className="text-[9px] uppercase tracking-widest text-white/20 font-mono">All Entries</span>
+                                <div className="h-px flex-1 bg-white/5" />
+                            </div>
+                            {items.map((item, i) => (
+                                <button
+                                    key={item._id}
+                                    onClick={() => handleSelect(item)}
+                                    className={cn(
+                                        "w-full flex items-center gap-3 p-2.5 rounded-lg transition-all border text-left",
+                                        selectedId === item._id
+                                            ? "bg-white/10 border-white/15"
+                                            : "bg-white/[0.03] border-transparent hover:bg-white/[0.06]"
+                                    )}
+                                    style={{ borderColor: selectedId === item._id ? `${item.color}50` : undefined }}
+                                >
+                                    <div className="w-1 h-8 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-xs font-semibold text-white truncate">{item.title}</p>
+                                        <p className="text-[10px] text-gray-500 truncate">{item.company} · {item.year}</p>
+                                    </div>
+                                    <span className={cn(
+                                        "text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shrink-0",
+                                        item.type === 'education' ? "bg-purple-500/15 text-purple-400" :
+                                            item.type === 'work' ? "bg-cyan-500/15 text-cyan-400" : "bg-orange-500/15 text-orange-400"
+                                    )}>{item.type}</span>
+                                </button>
+                            ))}
+                        </div>
                     )}
                 </div>
             </GlassPanel>
