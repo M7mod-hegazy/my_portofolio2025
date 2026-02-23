@@ -122,65 +122,67 @@ export const Navigation = () => {
 
       {/* Mobile Bottom Navigation (Premium Glass Dock) */}
       <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-[95%] sm:max-w-md">
-        <div className="glass-card px-2 py-2 flex justify-between items-center bg-black/80 backdrop-blur-2xl border border-white/10 rounded-full shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] overflow-hidden">
-          {navItems.map((item) => {
-            const Icon = item.icon
-            const isActive = activeSection === item.id
+        <div className="glass-card px-2 py-2 flex items-center bg-black/80 backdrop-blur-2xl border border-white/10 rounded-full shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] overflow-x-auto scrollbar-hide no-scrollbar touch-pan-x snap-x snap-mandatory">
+          <div className="flex gap-1 min-w-max mx-auto px-1">
+            {navItems.map((item) => {
+              const Icon = item.icon
+              const isActive = activeSection === item.id
 
-            return (
-              <button
-                key={item.id}
-                onClick={() => scrollToSection(item.path, item.id)}
-                className={cn(
-                  "relative flex items-center justify-center p-2.5 transition-all duration-300 rounded-full",
-                  isActive ? "flex-1 px-4 bg-white/10" : "flex-none text-white/50 hover:bg-white/5"
-                )}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="activeTabMobile"
-                    className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full border border-white/10"
-                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                  />
-                )}
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => scrollToSection(item.path, item.id)}
+                  className={cn(
+                    "relative flex items-center justify-center p-2.5 transition-all duration-300 rounded-full snap-center",
+                    isActive ? "px-4 bg-white/10" : "text-white/50 hover:bg-white/5"
+                  )}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeTabMobile"
+                      className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full border border-white/10"
+                      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    />
+                  )}
 
-                <div className="relative z-10 flex items-center gap-2">
-                  <Icon
-                    className={cn(
-                      "w-5 h-5 transition-all duration-300",
-                      isActive
-                        ? item.id === "skills" ? "text-red-400 drop-shadow-[0_0_8px_rgba(248,113,113,0.5)]"
-                          : item.id === "services" ? "text-purple-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.5)]"
-                            : item.id === "projects" ? "text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.5)]"
-                              : item.id === "certifications" ? "text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]"
-                                : "text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]"
-                        : "text-white/60"
-                    )}
-                  />
+                  <div className="relative z-10 flex items-center gap-2">
+                    <Icon
+                      className={cn(
+                        "w-5 h-5 transition-all duration-300",
+                        isActive
+                          ? item.id === "skills" ? "text-red-400 drop-shadow-[0_0_8px_rgba(248,113,113,0.5)]"
+                            : item.id === "services" ? "text-purple-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.5)]"
+                              : item.id === "projects" ? "text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.5)]"
+                                : item.id === "certifications" ? "text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]"
+                                  : "text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]"
+                          : "text-white/60"
+                      )}
+                    />
 
-                  <AnimatePresence>
-                    {isActive && (
-                      <motion.span
-                        initial={{ opacity: 0, width: 0 }}
-                        animate={{ opacity: 1, width: "auto" }}
-                        exit={{ opacity: 0, width: 0 }}
-                        className={cn(
-                          "whitespace-nowrap text-xs font-bold tracking-wide",
-                          item.id === "skills" ? "text-red-400"
-                            : item.id === "services" ? "text-purple-400"
-                              : item.id === "projects" ? "text-orange-400"
-                                : item.id === "certifications" ? "text-yellow-400"
-                                  : "text-cyan-400"
-                        )}
-                      >
-                        {item.label}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </button>
-            )
-          })}
+                    <AnimatePresence>
+                      {isActive && (
+                        <motion.span
+                          initial={{ opacity: 0, width: 0 }}
+                          animate={{ opacity: 1, width: "auto" }}
+                          exit={{ opacity: 0, width: 0 }}
+                          className={cn(
+                            "whitespace-nowrap text-xs font-bold tracking-wide",
+                            item.id === "skills" ? "text-red-400"
+                              : item.id === "services" ? "text-purple-400"
+                                : item.id === "projects" ? "text-orange-400"
+                                  : item.id === "certifications" ? "text-yellow-400"
+                                    : "text-cyan-400"
+                          )}
+                        >
+                          {item.label}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
     </>
