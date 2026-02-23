@@ -810,6 +810,9 @@ export function createApiServer() {
 // ─── Vercel Serverless Entry Point ─────────────────────────────────────────────
 // Vercel @vercel/node calls the default export as a request handler.
 // Singleton pattern keeps the MongoDB connection alive across warm invocations.
+// We must strip the /api prefix from the URL because:
+//   - Vercel routes /api/contact → this handler with the FULL url "/api/contact"
+//   - Express routes are registered without the prefix: app.get('/contact', ...)
 let _app: ReturnType<typeof createApiServer> | null = null;
 function getApp() {
     if (!_app) _app = createApiServer();
@@ -817,5 +820,11 @@ function getApp() {
 }
 
 export default function handler(req: IncomingMessage, res: ServerResponse) {
+    // Strip /api prefix so Express can match its routes
+    if (req.url?.startsWith('/api/')) {
+        req.url = req.url.slice(4); // "/api/contact" → "/contact"
+    } else if (req.url === '/api') {
+        req.url = '/';
+    }
     return getApp()(req, res);
 }
