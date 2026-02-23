@@ -7,6 +7,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import { Readable } from 'stream';
 import fs from 'fs';
 import path from 'path';
+import type { IncomingMessage, ServerResponse } from 'http';
 
 dotenv.config();
 
@@ -804,4 +805,17 @@ export function createApiServer() {
     });
 
     return app;
+}
+
+// ─── Vercel Serverless Entry Point ─────────────────────────────────────────────
+// Vercel @vercel/node calls the default export as a request handler.
+// Singleton pattern keeps the MongoDB connection alive across warm invocations.
+let _app: ReturnType<typeof createApiServer> | null = null;
+function getApp() {
+    if (!_app) _app = createApiServer();
+    return _app;
+}
+
+export default function handler(req: IncomingMessage, res: ServerResponse) {
+    return getApp()(req, res);
 }
