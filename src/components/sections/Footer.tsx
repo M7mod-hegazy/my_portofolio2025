@@ -12,7 +12,8 @@ export const Footer = () => {
     instagram: '',
     facebook: '',
     whatsapp: '',
-    messenger: ''
+    messenger: '',
+    hiddenSocials: [] as string[]
   });
 
   useEffect(() => {
@@ -38,12 +39,12 @@ export const Footer = () => {
   };
 
   const socialLinks = [
-    { icon: Github, url: contactInfo.github, color: 'from-gray-700 to-gray-900', label: 'GitHub' },
-    { icon: Linkedin, url: contactInfo.linkedin, color: 'from-blue-600 to-blue-800', label: 'LinkedIn' },
-    { icon: FaXTwitter, url: contactInfo.twitter, color: 'from-gray-800 to-black', label: 'Twitter' },
-    { icon: Instagram, url: contactInfo.instagram, color: 'from-pink-500 to-purple-600', label: 'Instagram' },
-    { icon: Facebook, url: contactInfo.facebook, color: 'from-blue-600 to-blue-700', label: 'Facebook' },
-  ];
+    { key: 'github', icon: Github, url: contactInfo.github, color: 'from-gray-700 to-gray-900', label: 'GitHub' },
+    { key: 'linkedin', icon: Linkedin, url: contactInfo.linkedin, color: 'from-blue-600 to-blue-800', label: 'LinkedIn' },
+    { key: 'twitter', icon: FaXTwitter, url: contactInfo.twitter, color: 'from-gray-800 to-black', label: 'Twitter' },
+    { key: 'instagram', icon: Instagram, url: contactInfo.instagram, color: 'from-pink-500 to-purple-600', label: 'Instagram' },
+    { key: 'facebook', icon: Facebook, url: contactInfo.facebook, color: 'from-blue-600 to-blue-700', label: 'Facebook' },
+  ].filter(s => s.url && s.url.trim() && !contactInfo.hiddenSocials.includes(s.key));
 
   return (
     <footer className="relative border-t border-primary/10">

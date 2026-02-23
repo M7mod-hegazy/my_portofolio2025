@@ -20,6 +20,7 @@ interface ContactInfo {
   twitter?: string;
   instagram?: string;
   facebook?: string;
+  hiddenSocials?: string[];
 }
 
 export const HeroSection = ({ previewData }: { previewData?: HeroData }) => {
@@ -215,7 +216,7 @@ export const HeroSection = ({ previewData }: { previewData?: HeroData }) => {
             transition={{ delay: 2, duration: 1 }}
             className="flex gap-2.5 md:gap-4 justify-center flex-wrap"
           >
-            {contactInfo.github && (
+            {contactInfo.github && !(contactInfo.hiddenSocials ?? []).includes('github') && (
               <motion.a
                 href={contactInfo.github}
                 target="_blank"
@@ -228,7 +229,7 @@ export const HeroSection = ({ previewData }: { previewData?: HeroData }) => {
                 <Github className="w-5 h-5 text-white" />
               </motion.a>
             )}
-            {contactInfo.linkedin && (
+            {contactInfo.linkedin && !(contactInfo.hiddenSocials ?? []).includes('linkedin') && (
               <motion.a
                 href={contactInfo.linkedin}
                 target="_blank"
@@ -241,7 +242,7 @@ export const HeroSection = ({ previewData }: { previewData?: HeroData }) => {
                 <Linkedin className="w-5 h-5 text-white" />
               </motion.a>
             )}
-            {contactInfo.twitter && (
+            {contactInfo.twitter && !(contactInfo.hiddenSocials ?? []).includes('twitter') && (
               <motion.a
                 href={contactInfo.twitter}
                 target="_blank"
@@ -254,7 +255,7 @@ export const HeroSection = ({ previewData }: { previewData?: HeroData }) => {
                 <FaXTwitter className="w-5 h-5 text-white" />
               </motion.a>
             )}
-            {contactInfo.instagram && (
+            {contactInfo.instagram && !(contactInfo.hiddenSocials ?? []).includes('instagram') && (
               <motion.a
                 href={contactInfo.instagram}
                 target="_blank"
@@ -267,7 +268,7 @@ export const HeroSection = ({ previewData }: { previewData?: HeroData }) => {
                 <Instagram className="w-5 h-5 text-white" />
               </motion.a>
             )}
-            {contactInfo.facebook && (
+            {contactInfo.facebook && !(contactInfo.hiddenSocials ?? []).includes('facebook') && (
               <motion.a
                 href={contactInfo.facebook}
                 target="_blank"

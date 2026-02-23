@@ -214,14 +214,15 @@ export const SkillCard = ({ skill, index, isMobile = false }: SkillCardProps) =>
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
                 onMouseEnter={() => setHovered(true)}
-                className={cn("relative w-full cursor-pointer z-0 group", isMobile ? "h-[100px]" : "h-[120px]")}
+                className={cn("relative w-full cursor-pointer z-0 group", isMobile ? "min-h-[90px]" : "h-[120px]")}
             >
                 <div
                     className={cn(
-                        "relative h-full w-full overflow-hidden bg-[#0a0a0a] transition-all duration-100 flex items-center p-4 gap-4",
-                        "border border-white/10 hover:bg-[#0f0f0f]", // Initial state
-                        theme.border, // Hover border color
-                        hovered && theme.glow // Hover glow
+                        "relative h-full w-full overflow-hidden bg-[#0a0a0a] transition-all duration-100 flex items-center gap-3",
+                        isMobile ? "p-3" : "p-4",
+                        "border border-white/10 hover:bg-[#0f0f0f]",
+                        theme.border,
+                        hovered && theme.glow
                     )}
                 >
                     {/* Scanlines Overlay (Subtle) */}
@@ -233,7 +234,8 @@ export const SkillCard = ({ skill, index, isMobile = false }: SkillCardProps) =>
 
                     {/* Icon Container */}
                     <div className={cn(
-                        "relative shrink-0 w-14 h-14 flex items-center justify-center bg-[#050505] border border-white/10 z-20 transition-colors duration-100",
+                        "relative shrink-0 flex items-center justify-center bg-[#050505] border border-white/10 z-20 transition-colors duration-100",
+                        isMobile ? "w-10 h-10" : "w-14 h-14",
                         hovered && theme.border
                     )}>
                         {renderIcon()}
@@ -242,9 +244,10 @@ export const SkillCard = ({ skill, index, isMobile = false }: SkillCardProps) =>
                     {/* Details */}
                     <div className="flex-1 min-w-0 flex flex-col justify-between h-full py-1 z-20">
                         <div className="flex justify-between items-start">
-                            <div>
+                            <div className="min-w-0 flex-1">
                                 <h3 className={cn(
-                                    "font-mono text-sm font-bold tracking-tight uppercase",
+                                    "font-mono font-bold tracking-tight uppercase",
+                                    isMobile ? "text-[11px] line-clamp-2 leading-tight" : "text-sm",
                                     hovered ? "text-white" : "text-gray-400"
                                 )}>
                                     {hovered ? `>_ ${skill.name}` : skill.name}
@@ -291,25 +294,25 @@ export const SkillCard = ({ skill, index, isMobile = false }: SkillCardProps) =>
                                 className="absolute inset-0 bg-black/90 backdrop-blur-sm"
                             />
                             <motion.div
-                                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                                initial={{ opacity: 0, y: 60, scale: 0.98 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 40, scale: 0.98 }}
                                 onClick={(e) => e.stopPropagation()}
                                 className={cn(
-                                    "relative w-full max-w-2xl bg-[#0a0a0a] border border-white/20 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]",
+                                    "relative w-full sm:max-w-2xl bg-[#0a0a0a] border border-white/20 shadow-2xl overflow-hidden flex flex-col",
+                                    "max-h-[92dvh]",
                                     "shadow-[0_0_50px_rgba(0,0,0,0.8)]"
                                 )}
                             >
-                                {/* Terminal Header */}
-                                <div className="h-9 bg-[#1a1a1a] border-b border-white/10 flex items-center justify-between px-4 select-none">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex gap-1.5">
+                                <div className="h-9 bg-[#1a1a1a] border-b border-white/10 flex items-center justify-between px-3 sm:px-4 select-none shrink-0">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <div className="flex gap-1.5 shrink-0">
                                             <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]" />
                                             <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]" />
                                             <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]" />
                                         </div>
-                                        <span className="font-mono text-[11px] text-gray-500 ml-2">
-                                            usr/bin/{skill.name.toLowerCase()} --verbose
+                                        <span className="font-mono text-[10px] text-gray-500 ml-1 truncate min-w-0">
+                                            usr/bin/{skill.name.toLowerCase().slice(0, 20)}{skill.name.length > 20 ? '…' : ''} --v
                                         </span>
                                     </div>
                                     <button
@@ -320,8 +323,8 @@ export const SkillCard = ({ skill, index, isMobile = false }: SkillCardProps) =>
                                     </button>
                                 </div>
 
-                                {/* Content - Relative for Hover Preview */}
-                                <div className="relative flex-1 overflow-y-auto font-mono text-sm text-gray-300 custom-scrollbar p-0">
+                                {/* Content */}
+                                <div className="relative flex-1 overflow-y-auto scrollbar-hide font-mono text-sm text-gray-300 p-0">
 
                                     {/* HOVER PREVIEW BACKGROUND */}
                                     <AnimatePresence>
@@ -340,35 +343,36 @@ export const SkillCard = ({ skill, index, isMobile = false }: SkillCardProps) =>
                                         )}
                                     </AnimatePresence>
 
-                                    <div className="relative z-10 p-6 space-y-8">
+                                    <div className="relative z-10 p-4 sm:p-6 space-y-5 sm:space-y-8">
                                         {/* Skill Header Block */}
-                                        <div className="flex gap-6 items-start border-b border-white/10 pb-6">
-                                            <div className={cn("w-24 h-24 shrink-0 bg-black border flex items-center justify-center relative", theme.border)}>
+                                        <div className="flex gap-3 sm:gap-6 items-start border-b border-white/10 pb-4 sm:pb-6">
+                                            <div className={cn("w-14 h-14 sm:w-24 sm:h-24 shrink-0 bg-black border flex items-center justify-center relative", theme.border)}>
                                                 <div className="absolute inset-0 bg-grid-white/[0.05]" />
                                                 {renderIcon()}
-                                                {/* Corner markers */}
                                                 <div className="absolute top-0 left-0 w-1 h-1 bg-white" />
                                                 <div className="absolute top-0 right-0 w-1 h-1 bg-white" />
                                                 <div className="absolute bottom-0 left-0 w-1 h-1 bg-white" />
                                                 <div className="absolute bottom-0 right-0 w-1 h-1 bg-white" />
                                             </div>
 
-                                            <div className="flex-1 space-y-2">
-                                                <div className="flex items-center gap-2">
-                                                    <h1 className="text-3xl font-bold text-white tracking-tighter uppercase">{skill.name}</h1>
-                                                    <span className={cn("px-2 py-0.5 text-[10px] border", theme.text.replace("text-", "border-"), theme.text)}>
+                                            <div className="flex-1 min-w-0 space-y-2">
+                                                <div className="flex items-start gap-2 flex-wrap">
+                                                    <h1 className="text-base sm:text-3xl font-bold text-white tracking-tighter uppercase leading-tight">
+                                                        {skill.name}
+                                                    </h1>
+                                                    <span className={cn("shrink-0 px-2 py-0.5 text-[10px] border self-start mt-0.5", theme.text.replace("text-", "border-"), theme.text)}>
                                                         V.{String(skill.level === "Expert" ? "5.0" : skill.level === "Advanced" ? "3.2" : "1.0")}
                                                     </span>
                                                 </div>
 
-                                                <div className="grid grid-cols-2 gap-4 text-xs mt-2">
+                                                <div className="grid grid-cols-2 gap-2 sm:gap-4 text-xs mt-1 sm:mt-2">
                                                     <div className="flex flex-col">
                                                         <span className="text-gray-600 uppercase text-[10px]">Category</span>
                                                         <span className={theme.text}>{skill.category}</span>
                                                     </div>
                                                     <div className="flex flex-col">
                                                         <span className="text-gray-600 uppercase text-[10px]">Mastery</span>
-                                                        <span className="text-white">
+                                                        <span className="text-white text-[11px]">
                                                             [{Array(10).fill(0).map((_, i) => (
                                                                 <span key={i} className={i < (masteryLevel / 10) ? theme.text : "text-[#222]"}>|</span>
                                                             ))}] {masteryLevel}%
@@ -376,7 +380,7 @@ export const SkillCard = ({ skill, index, isMobile = false }: SkillCardProps) =>
                                                     </div>
                                                 </div>
 
-                                                <div className="mt-4 p-3 bg-white/5 border-l-2 border-white/20 text-xs italic text-gray-400">
+                                                <div className="mt-2 sm:mt-4 p-2 sm:p-3 bg-white/5 border-l-2 border-white/20 text-xs italic text-gray-400">
                                                     <span className="not-italic text-gray-500 mr-2">$ system_check:</span>
                                                     "{systemInfo.obs}"
                                                 </div>

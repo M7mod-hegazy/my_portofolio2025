@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Save, FileText, Globe, Mail, Phone, MapPin, Linkedin, Github, Twitter, Facebook, Instagram, MessageCircle, Upload, Trash2 } from "lucide-react";
+import { Save, FileText, Globe, Mail, Phone, MapPin, Linkedin, Github, Twitter, Facebook, Instagram, MessageCircle, Upload, Trash2, Eye, EyeOff } from "lucide-react";
 import { AdminLoader } from "../AdminLoader";
 
 interface ContactDB {
@@ -20,6 +20,7 @@ interface ContactDB {
     facebook: string;
     whatsapp: string;
     messenger: string;
+    hiddenSocials: string[];
 }
 
 interface CVDB {
@@ -31,7 +32,8 @@ interface CVDB {
 export const SettingsAdmin = () => {
     const [contact, setContact] = useState<ContactDB>({
         email: "", phone: "", location: "", website: "",
-        linkedin: "", github: "", twitter: "", instagram: "", facebook: "", whatsapp: "", messenger: ""
+        linkedin: "", github: "", twitter: "", instagram: "", facebook: "", whatsapp: "", messenger: "",
+        hiddenSocials: []
     });
     const [cv, setCv] = useState<CVDB | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -142,28 +144,46 @@ export const SettingsAdmin = () => {
                         {/* Social Links */}
                         <Card className="p-6 bg-white/5 border-white/10 backdrop-blur-md space-y-4">
                             <h3 className="font-bold text-white flex items-center gap-2"><Globe className="w-4 h-4 text-purple-400" /> Social Networks</h3>
+                            <p className="text-xs text-gray-500">Toggle the eye icon to show/hide a button on your public site.</p>
 
                             <div className="grid grid-cols-1 gap-3">
-                                <div className="flex items-center gap-3">
-                                    <Github className="w-5 h-5 text-gray-400" />
-                                    <Input placeholder="GitHub URL" value={contact.github} onChange={e => setContact({ ...contact, github: e.target.value })} className="bg-black/50 border-white/10 text-white" />
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <Linkedin className="w-5 h-5 text-blue-400" />
-                                    <Input placeholder="LinkedIn URL" value={contact.linkedin} onChange={e => setContact({ ...contact, linkedin: e.target.value })} className="bg-black/50 border-white/10 text-white" />
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <Twitter className="w-5 h-5 text-sky-400" />
-                                    <Input placeholder="Twitter URL" value={contact.twitter} onChange={e => setContact({ ...contact, twitter: e.target.value })} className="bg-black/50 border-white/10 text-white" />
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <Instagram className="w-5 h-5 text-pink-400" />
-                                    <Input placeholder="Instagram URL" value={contact.instagram} onChange={e => setContact({ ...contact, instagram: e.target.value })} className="bg-black/50 border-white/10 text-white" />
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <Facebook className="w-5 h-5 text-blue-600" />
-                                    <Input placeholder="Facebook URL" value={contact.facebook} onChange={e => setContact({ ...contact, facebook: e.target.value })} className="bg-black/50 border-white/10 text-white" />
-                                </div>
+                                {([
+                                    { key: "github", icon: Github, color: "text-gray-400", placeholder: "GitHub URL" },
+                                    { key: "linkedin", icon: Linkedin, color: "text-blue-400", placeholder: "LinkedIn URL" },
+                                    { key: "twitter", icon: Twitter, color: "text-sky-400", placeholder: "Twitter URL" },
+                                    { key: "instagram", icon: Instagram, color: "text-pink-400", placeholder: "Instagram URL" },
+                                    { key: "facebook", icon: Facebook, color: "text-blue-600", placeholder: "Facebook URL" },
+                                ] as const).map(({ key, icon: Icon, color, placeholder }) => {
+                                    const isHidden = contact.hiddenSocials.includes(key);
+                                    const toggleHide = () => setContact(prev => ({
+                                        ...prev,
+                                        hiddenSocials: isHidden
+                                            ? prev.hiddenSocials.filter(s => s !== key)
+                                            : [...prev.hiddenSocials, key]
+                                    }));
+                                    return (
+                                        <div key={key} className={`flex items-center gap-3 transition-opacity ${isHidden ? "opacity-40" : "opacity-100"}`}>
+                                            <Icon className={`w-5 h-5 flex-shrink-0 ${color}`} />
+                                            <Input
+                                                placeholder={placeholder}
+                                                value={(contact as any)[key]}
+                                                onChange={e => setContact({ ...contact, [key]: e.target.value })}
+                                                className="bg-black/50 border-white/10 text-white flex-1"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={toggleHide}
+                                                title={isHidden ? "Show on site" : "Hide from site"}
+                                                className={`p-2 rounded-lg border transition-colors flex-shrink-0 ${isHidden
+                                                        ? "border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                                                        : "border-white/10 bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white"
+                                                    }`}
+                                            >
+                                                {isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </Card>
 

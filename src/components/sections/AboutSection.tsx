@@ -115,13 +115,15 @@ export const AboutSection = () => {
     fetchData();
   }, []);
 
+  const _hidden = socialLinks?.hiddenSocials ?? [];
   const socialIcons = [
-    { icon: Github, label: 'GitHub', url: socialLinks?.github, hoverBg: 'hover:bg-[#333]' },
-    { icon: Linkedin, label: 'LinkedIn', url: socialLinks?.linkedin, hoverBg: 'hover:bg-[#0077B5]' },
-    { icon: Twitter, label: 'Twitter', url: socialLinks?.twitter, hoverBg: 'hover:bg-[#1DA1F2]' },
-    { icon: Instagram, label: 'Instagram', url: socialLinks?.instagram, hoverBg: 'hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500' },
-    { icon: Facebook, label: 'Facebook', url: socialLinks?.facebook, hoverBg: 'hover:bg-[#1877F2]' },
-  ];
+    { key: 'github', icon: Github, label: 'GitHub', url: socialLinks?.github, hoverBg: 'hover:bg-[#333]' },
+    { key: 'linkedin', icon: Linkedin, label: 'LinkedIn', url: socialLinks?.linkedin, hoverBg: 'hover:bg-[#0077B5]' },
+    { key: 'twitter', icon: Twitter, label: 'Twitter', url: socialLinks?.twitter, hoverBg: 'hover:bg-[#1DA1F2]' },
+    { key: 'instagram', icon: Instagram, label: 'Instagram', url: socialLinks?.instagram, hoverBg: 'hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500' },
+    { key: 'facebook', icon: Facebook, label: 'Facebook', url: socialLinks?.facebook, hoverBg: 'hover:bg-[#1877F2]' },
+  ].filter(s => s.url && !_hidden.includes(s.key));
+
 
   const containerVariants = {
     hidden: { opacity: 0 },

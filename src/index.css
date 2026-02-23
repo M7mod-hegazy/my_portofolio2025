@@ -259,6 +259,29 @@ All colors MUST be HSL.
   }
 }
 
+@layer utilities {
+  /* Scrollbar hide utility — replaces tailwind-scrollbar-hide plugin */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;             /* Chrome, Safari, Opera */
+    width: 0;
+    height: 0;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
 @layer components {
   /* Hero Button Variants */
   .btn-hero {

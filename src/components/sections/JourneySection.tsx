@@ -265,20 +265,11 @@ const EducationCard = ({ item, isEven }: { item: JourneyItem, isEven: boolean })
                 <LucideIcons.GraduationCap size={220} />
             </motion.div>
 
-            {/* Year Badge */}
-            <motion.div
-                variants={scaleIn}
-                className="absolute top-6 right-6"
-            >
-                <div className="px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs md:text-sm font-mono">
-                    {item.year}
-                </div>
-            </motion.div>
 
             {/* Header */}
             <motion.div
                 variants={isEven ? slideInLeft : slideInRight}
-                className="flex items-center gap-4 md:gap-6 mb-5 md:mb-8 pb-4 md:pb-6 border-b border-white/5"
+                className="flex items-start gap-4 md:gap-6 mb-5 md:mb-8 pb-4 md:pb-6 border-b border-white/5"
             >
                 <motion.div
                     whileHover={{ scale: 1.05 }}
@@ -286,7 +277,7 @@ const EducationCard = ({ item, isEven }: { item: JourneyItem, isEven: boolean })
                 >
                     <RenderIcon iconName={item.icon} itemType="education" className="w-7 h-7 md:w-10 md:h-10" />
                 </motion.div>
-                <div>
+                <div className="flex-1 min-w-0">
                     <motion.h3
                         variants={fadeUp}
                         className="text-lg md:text-2xl lg:text-4xl font-serif text-white tracking-wide leading-tight mb-1 md:mb-2"
@@ -300,6 +291,12 @@ const EducationCard = ({ item, isEven }: { item: JourneyItem, isEven: boolean })
                         {item.company}
                     </motion.p>
                 </div>
+                {/* Year Badge — inline so it never overlaps the title */}
+                <motion.div variants={scaleIn} className="shrink-0 self-start">
+                    <div className="px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs md:text-sm font-mono whitespace-nowrap">
+                        {item.year}
+                    </div>
+                </motion.div>
             </motion.div>
 
             {/* Info Grid */}

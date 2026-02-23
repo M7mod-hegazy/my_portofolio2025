@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { SkillCard } from "./SkillCard";
 import { Loader2 } from "lucide-react";
 
@@ -90,128 +90,100 @@ export const SkillDeck = () => {
         groupedSkills[cat] = filteredSkills.filter(s => s.category === cat);
     });
 
-    // 4. Mobile State
-    const [activeMobileCategory, setActiveMobileCategory] = useState("All");
-
     return (
         <div className="w-full min-h-[60vh] flex flex-col items-center">
 
-            {/* MOBILE VIEW (Tactical Data Grid) */}
-            <div className="md:hidden w-full max-w-sm mx-auto pb-32">
-                {/* 1. System Header */}
-                <div className="flex items-center justify-between mb-6 px-1 border-b border-white/10 pb-3">
-                    <div className="flex flex-col">
-                        <span className="text-[10px] font-mono text-cyan-500 font-bold tracking-widest uppercase">
-                            // SYSTEM.ARSENAL
-                        </span>
-                        <span className="text-[9px] text-gray-500 font-mono">
-                            MO.V.2.0.4 :: ONLINE
-                        </span>
+            {/* MOBILE VIEW — Terminal Window (same as desktop, mobile-scaled) */}
+            <div className="md:hidden w-full pb-20">
+                {isLoading ? (
+                    <div className="flex justify-center items-center h-64">
+                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
                     </div>
-                    <div className="flex gap-1">
-                        <div className="w-1 h-3 bg-cyan-500/50 rounded-sm" />
-                        <div className="w-1 h-3 bg-cyan-500/30 rounded-sm" />
-                        <div className="w-1 h-3 bg-cyan-500/10 rounded-sm" />
+                ) : filteredSkills.length === 0 ? (
+                    <div className="text-center py-20 text-muted-foreground border border-dashed border-white/10 rounded-xl">
+                        No skills found in the Arsenal.
                     </div>
-                </div>
+                ) : (
+                    <div className="w-full rounded-xl overflow-hidden border border-white/10 bg-[#0c0c0c] shadow-2xl">
+                        {/* Terminal Header */}
+                        <div className="bg-[#1a1a1a] sticky top-0 z-30 px-3 py-2.5 flex items-center justify-between border-b border-white/5">
+                            <div className="flex items-center gap-2">
+                                <div className="flex gap-1.5">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56] border border-[#e0443e]" />
+                                    <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e] border border-[#dea123]" />
+                                    <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f] border border-[#1aab29]" />
+                                </div>
+                                <div className="ml-2 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-black/20 border border-white/5">
+                                    <span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse" />
+                                    <span className="text-[9px] font-mono text-white/50 tracking-wider uppercase">
+                                        root@arsenal:~/skills
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="font-mono text-[9px] text-white/30 tracking-widest uppercase">
+                                BASH // ZSH
+                            </div>
+                        </div>
 
-                {/* 2. Tactical Tabs (Sticky) */}
-                <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl py-3 -mx-4 px-4 overflow-x-auto no-scrollbar border-b border-white/5 mb-6">
-                    <div className="flex gap-2">
-                        {["All", ...sortedCategories].map(cat => (
-                            <button
-                                key={cat}
-                                onClick={() => setActiveMobileCategory(cat)}
-                                className={cn(
-                                    "relative px-4 py-2 rounded-md text-[10px] font-mono font-bold whitespace-nowrap transition-all border uppercase tracking-wider",
-                                    activeMobileCategory === cat
-                                        ? "bg-cyan-950/50 text-cyan-400 border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.2)]"
-                                        : "bg-white/5 text-gray-500 border-white/5 hover:border-white/20"
-                                )}
-                            >
-                                {cat}
-                                {/* Active Indicator Dot */}
-                                {activeMobileCategory === cat && (
-                                    <span className="absolute top-1 right-1 w-1 h-1 bg-cyan-400 rounded-full animate-pulse" />
-                                )}
-                            </button>
-                        ))}
-                    </div>
-                </div>
+                        {/* Terminal Body */}
+                        <div className="relative bg-black/40 px-3 py-4 space-y-8">
+                            {/* Grid line overlay */}
+                            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
 
-                {/* 3. Skill Blades Grid */}
-                <div className="grid grid-cols-2 gap-3">
-                    <AnimatePresence mode="popLayout">
-                        {filteredSkills
-                            .filter(s => activeMobileCategory === "All" || s.category === activeMobileCategory)
-                            .map((skill, index) => (
-                                <motion.div
-                                    layout
-                                    key={skill._id}
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.95 }}
-                                    transition={{ duration: 0.2, delay: index * 0.05 }}
-                                    className="group relative bg-[#0c0c0c] border border-white/10 rounded-lg overflow-hidden flex flex-col justify-between min-h-[110px]"
-                                >
-                                    {/* Decoration Lines */}
-                                    <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-white/10 rounded-tr-lg" />
-                                    <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-white/10 rounded-bl-lg" />
-
-                                    <div className="p-3 flex flex-col h-full relative z-10">
-
-                                        {/* Header: Icon & Tier */}
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="p-1.5 bg-white/5 rounded border border-white/5 group-hover:bg-cyan-500/10 group-hover:border-cyan-500/20 transition-colors">
-                                                <img src={skill.icon} alt={skill.name} className="w-5 h-5 object-contain" />
+                            {sortedCategories.map((category, index) => {
+                                const skillsInCategory = groupedSkills[category];
+                                if (!skillsInCategory || skillsInCategory.length === 0) return null;
+                                return (
+                                    <motion.div
+                                        id={`mobile-sector-${category}`}
+                                        key={category}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        whileInView={{ opacity: 1, x: 0 }}
+                                        transition={{ duration: 0.4, delay: index * 0.08 }}
+                                        className="relative z-10"
+                                    >
+                                        {/* Category Header — name is the hero */}
+                                        <div className="flex items-center gap-3 mb-3">
+                                            {/* Prominent category name */}
+                                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                <span className="text-[10px] font-mono text-white/20 select-none">#</span>
+                                                <h3 className="text-base font-bold font-mono text-white uppercase tracking-widest truncate">
+                                                    {category}
+                                                </h3>
+                                                <span className="shrink-0 px-1.5 py-0.5 rounded bg-white/10 text-[9px] font-mono text-white/50">
+                                                    {skillsInCategory.length}
+                                                </span>
                                             </div>
-                                            <span className="text-[8px] font-mono text-gray-600 bg-white/5 px-1 rounded uppercase">
-                                                {skill.level.slice(0, 3)}
-                                            </span>
+                                            {/* Dim rule */}
+                                            <div className="flex-1 h-px bg-white/5" />
+                                        </div>
+                                        {/* Secondary CLI path — smaller, dimmer */}
+                                        <div className="flex items-center gap-1 mb-3 font-mono text-[9px] text-white/20 pl-4">
+                                            <span className="text-green-500/60">➜</span>
+                                            <span className="text-blue-400/50">~/skills/{category.toLowerCase()}</span>
+                                            <span className="text-white/20">$</span>
+                                            <span>./list-modules</span>
+                                            <span className="animate-pulse ml-1">_</span>
                                         </div>
 
-                                        {/* Content: Name */}
-                                        <h4 className="text-white font-bold text-xs font-mono mb-auto leading-tight pr-2">
-                                            {skill.name}
-                                        </h4>
-
-                                        {/* Footer: Tech Bar */}
-                                        <div className="mt-3">
-                                            <div className="flex justify-between text-[8px] text-gray-500 mb-1 font-mono">
-                                                <span>PWR</span>
-                                                <span className={cn(
-                                                    skill.level === "Expert" ? "text-red-400" :
-                                                        skill.level === "Advanced" ? "text-amber-400" : "text-blue-400"
-                                                )}>{
-                                                        skill.level === "Expert" ? "98%" :
-                                                            skill.level === "Advanced" ? "85%" : "60%"
-                                                    }</span>
-                                            </div>
-                                            <div className="h-0.5 w-full bg-white/10 rounded-full overflow-hidden">
-                                                <div
-                                                    className={cn("h-full",
-                                                        skill.level === "Expert" ? "bg-red-500" :
-                                                            skill.level === "Advanced" ? "bg-amber-500" : "bg-blue-500"
-                                                    )}
-                                                    style={{ width: skill.level === "Expert" ? "98%" : skill.level === "Advanced" ? "85%" : "60%" }}
-                                                />
-                                            </div>
+                                        {/* Rail output — horizontal scrolling cards with modal on tap */}
+                                        <div className="border-l-2 border-white/5 ml-1">
+                                            <SkillRail category={category} skills={skillsInCategory} isMobile={true} />
                                         </div>
-                                    </div>
+                                    </motion.div>
+                                );
+                            })}
 
-                                    {/* Hover scan effect */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                                </motion.div>
-                            ))}
-                    </AnimatePresence>
-                </div>
-
-                {/* Footer Info */}
-                <div className="mt-8 text-center">
-                    <p className="text-[9px] text-gray-600 font-mono">
-                        // TOTAL MODULES LOADED: {filteredSkills.length}
-                    </p>
-                </div>
+                            {/* Footer prompt */}
+                            <div className="pt-4 font-mono text-xs flex items-center gap-2 opacity-40">
+                                <span className="text-green-500">➜</span>
+                                <span className="text-blue-400">~/skills</span>
+                                <span className="text-white/30">$</span>
+                                <span className="animate-pulse bg-white/50 w-1.5 h-3.5 block" />
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* DESKTOP VIEW (Terminal Style) */}
@@ -266,18 +238,30 @@ export const SkillDeck = () => {
                                         transition={{ duration: 0.5, delay: index * 0.1 }}
                                         className="relative z-10"
                                     >
-                                        {/* CLI PROMPT HEADER */}
-                                        <div className="flex flex-col gap-2 mb-4 font-mono text-sm">
-                                            <div className="flex items-center gap-2 text-white/50">
-                                                <span className="text-green-500">➜</span>
-                                                <span className="text-blue-400">~/skills/{category.toLowerCase()}</span>
-                                                <span className="text-white/30">$</span>
-                                                <span className="text-white">./list-modules</span>
+                                        {/* Category Header — name is the hero */}
+                                        <div className="flex items-center gap-4 mb-4">
+                                            {/* Prominent category name */}
+                                            <div className="flex items-center gap-2.5 shrink-0">
+                                                <span className="text-sm font-mono text-white/20 select-none">#</span>
+                                                <h3 className="text-xl font-bold font-mono text-white uppercase tracking-widest">
+                                                    {category}
+                                                </h3>
+                                                <span className="px-2 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/50">
+                                                    {skillsInCategory.length} modules
+                                                </span>
                                             </div>
-                                            <div className="text-[10px] text-white/30 pl-6">
-                                                {`> FOUND ${skillsInCategory.length} ACTIVE MODULES...`}
-                                                <span className="animate-pulse">_</span>
-                                            </div>
+                                            {/* Rule line */}
+                                            <div className="flex-1 h-px bg-white/5" />
+                                        </div>
+                                        {/* Secondary CLI path — smaller, dimmer */}
+                                        <div className="flex items-center gap-2 mb-4 font-mono text-xs text-white/20 pl-2">
+                                            <span className="text-green-500/60">➜</span>
+                                            <span className="text-blue-400/50">~/skills/{category.toLowerCase()}</span>
+                                            <span>$</span>
+                                            <span>./list-modules</span>
+                                            <span className="text-white/20">&gt;</span>
+                                            <span>FOUND {skillsInCategory.length} ACTIVE MODULES</span>
+                                            <span className="animate-pulse">_</span>
                                         </div>
 
                                         {/* RAIL OUTPUT */}

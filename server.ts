@@ -134,6 +134,7 @@ export function createApiServer() {
         facebook: String,
         whatsapp: String,
         messenger: String,
+        hiddenSocials: { type: [String], default: [] },
         createdAt: { type: Date, default: Date.now },
         updatedAt: { type: Date, default: Date.now }
     });
