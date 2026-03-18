@@ -62,6 +62,8 @@ const App = () => (
 
                     {/* Legacy/Utility Routes */}
                     <Route path="/seed" element={<Seed />} />
+                    <Route path="/error/:code" element={<NotFound />} />
+                    <Route path="/admin/error/:code" element={<NotFound />} />
 
                     {/* 404 */}
                     <Route path="*" element={<NotFound />} />

@@ -20,6 +20,7 @@ interface Passion {
 
 interface AboutData {
   name: string;
+  captionName: string;
   title: string;
   location: string;
   content: string;
@@ -34,6 +35,7 @@ interface AboutData {
 
 const defaultData: AboutData = {
   name: "Your Name",
+  captionName: "Your Name",
   title: "Creative Developer",
   location: "Your Location",
   content: "I am an Electronics & Telecommunications Engineer passionate about creating innovative digital solutions.",
@@ -94,6 +96,7 @@ export const AboutSection = () => {
           const d = aboutData.data;
           setData({
             name: d.name || defaultData.name,
+            captionName: d.captionName || d.name || defaultData.captionName,
             title: d.title || defaultData.title,
             location: d.location || defaultData.location,
             content: d.content || defaultData.content,
@@ -187,7 +190,7 @@ export const AboutSection = () => {
               {/* Name & Location */}
               <div className="flex-1 min-w-0">
                 <h3 className="text-xl font-bold text-white tracking-tight truncate">
-                  {data.name}
+                  {data.captionName}
                 </h3>
                 <p className="text-[13px] text-gray-400 truncate">{data.title}</p>
                 <div className="flex items-center gap-1.5 text-cyan-400 text-xs mt-1.5">
@@ -297,7 +300,7 @@ export const AboutSection = () => {
 
               {/* Name Badge */}
               <div className="absolute bottom-0 left-0 right-0 p-3 md:p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-                <h3 className="text-lg md:text-2xl font-bold text-white mb-0.5 md:mb-1">{data.name}</h3>
+                <h3 className="text-lg md:text-2xl font-bold text-white mb-0.5 md:mb-1">{data.captionName}</h3>
                 <p className="text-gray-300 text-xs md:text-sm flex items-center gap-1 md:gap-2">
                   <MapPin size={12} className="md:w-3.5 md:h-3.5" />
                   {data.location}

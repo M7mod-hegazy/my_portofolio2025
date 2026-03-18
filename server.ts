@@ -79,6 +79,7 @@ export function createApiServer() {
         name: { type: String, default: "Your Name" },
         title: { type: String, default: "Full-Stack Developer" },
         location: { type: String, default: "Your Location" },
+        aboutCaptionFallbackName: { type: String, default: "" },
         content: String,
         avatar: String,
         mission: { type: String, default: "Building scalable products that blend technical excellence with intuitive design." },
@@ -327,7 +328,28 @@ export function createApiServer() {
     });
 
     // About
-    app.get('/about', async (req, res) => res.json({ success: true, data: await About.findOne() }));
+    app.get('/about', async (req, res) => {
+        try {
+            let about = await About.findOne();
+            if (!about) {
+                about = await About.create({});
+            }
+            const homeInfo = await Hero.findOne({}, { title: 1 }).lean();
+            const homeInfoName = homeInfo?.title?.trim() || "";
+            const fallbackCaptionName = about.aboutCaptionFallbackName?.trim() || "";
+            const captionName = homeInfoName || fallbackCaptionName || about.name || "Your Name";
+            res.json({
+                success: true,
+                data: {
+                    ...about.toObject(),
+                    captionName,
+                    homeInfoName
+                }
+            });
+        } catch (error) {
+            res.status(400).json({ success: false, error: (error as Error).message });
+        }
+    });
     app.post('/about', async (req, res) => {
         const about = await About.findOneAndUpdate({}, req.body, { upsert: true, new: true });
         res.json({ success: true, data: about });

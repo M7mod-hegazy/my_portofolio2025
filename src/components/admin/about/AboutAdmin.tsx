@@ -24,6 +24,7 @@ interface AboutDB {
     name: string;
     title: string;
     location: string;
+    aboutCaptionFallbackName: string;
     content: string;
     avatar: string;
     mission: string;
@@ -38,6 +39,7 @@ const defaultAbout: AboutDB = {
     name: "Your Name",
     title: "Full-Stack Developer",
     location: "Your Location",
+    aboutCaptionFallbackName: "",
     content: "",
     avatar: "",
     mission: "Building scalable products that blend technical excellence with intuitive design.",
@@ -70,6 +72,7 @@ export const AboutAdmin = () => {
                     name: json.data.name || defaultAbout.name,
                     title: json.data.title || defaultAbout.title,
                     location: json.data.location || defaultAbout.location,
+                    aboutCaptionFallbackName: json.data.aboutCaptionFallbackName || "",
                     content: json.data.content || "",
                     avatar: json.data.avatar || "",
                     mission: json.data.mission || defaultAbout.mission,
@@ -212,6 +215,10 @@ export const AboutAdmin = () => {
                             <div>
                                 <Label className="text-cyan-400 text-xs uppercase tracking-wider">Location</Label>
                                 <Input value={data.location} onChange={e => setData({ ...data, location: e.target.value })} className="bg-black/50 border-white/10 mt-1" placeholder="New York, USA" />
+                            </div>
+                            <div>
+                                <Label className="text-cyan-400 text-xs uppercase tracking-wider">Caption Name Fallback</Label>
+                                <Input value={data.aboutCaptionFallbackName} onChange={e => setData({ ...data, aboutCaptionFallbackName: e.target.value })} className="bg-black/50 border-white/10 mt-1" placeholder="Name shown if Home title is empty" />
                             </div>
                         </div>
 
