@@ -1,11 +1,13 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { motion, useMotionValue, useTransform, useInView, AnimatePresence } from "framer-motion";
-import { Award, ExternalLink, Calendar, CheckCircle2, X, Search, Ribbon, Building2, Clock, Filter, SortAsc } from "lucide-react";
+import { Award, ExternalLink, Calendar, CheckCircle2, X, Search, Ribbon, Building2, Clock, Filter, SortAsc, Link2, Check } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { Button } from "@/components/ui/button";
 import { ConstellationBackground } from "@/components/ui/constellation-background";
 import { CertificatesGallery } from "@/components/ui/certificates-gallery";
+import { useModal } from "@/context/ModalContext";
+import { toast } from "sonner";
 
 const DUMMY_CERTIFICATES = [
     {
@@ -182,28 +184,26 @@ const CertificateCard = ({ cert, onClick }: { cert: any, onClick: () => void }) 
     );
 };
 
-import { useModal } from "@/context/ModalContext";
-
-// ... inside component
 export const CertificationsSection = () => {
     const [certificates, setCertificates] = useState<any[]>(DUMMY_CERTIFICATES);
-    // const [selectedCert, setSelectedCert] = useState<any>(null); // Removed local state
     const { activeCertId, closeCert, openCert } = useModal();
 
-    // Derive active cert from context ID
-    // Note: Certificates might be using 'id' (number) or '_id' (string) depending on if they are dummy or API. 
-    // The API seems to return objects, let's assume _id or id is consistently string in my new context, but let's be safe.
-    // The DUMMY_CERTIFICATES use 'id: number'. API probably uses '_id: string'. 
-    // I will convert to string for comparison.
-    const selectedCert = useMemo(() =>
-        certificates.find(c => String(c.id || (c as any)._id) === activeCertId) || null
-        , [certificates, activeCertId]);
+    // Derived selection with memoization
+    const selectedCert = useMemo(() => {
+        if (!activeCertId) return null;
+        const cert = certificates.find(c => String(c.id || (c as any)._id) === activeCertId);
+        return cert || null;
+    }, [certificates, activeCertId]);
+
+    // Track when dummy data is being used versus fetched data
+    const isDataFetched = useRef(false);
 
     const [filter, setFilter] = useState("all");
     const [searchQuery, setSearchQuery] = useState("");
     const [issuerFilter, setIssuerFilter] = useState("all");
     const [sortBy, setSortBy] = useState<"default" | "title" | "date">("default");
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+    const [copiedCertLink, setCopiedCertLink] = useState(false);
 
     const sectionRef = useRef(null);
 
@@ -215,13 +215,17 @@ export const CertificationsSection = () => {
         return () => document.removeEventListener('click', handleClick);
     }, [openDropdown]);
 
+    // Initial fetch of certificates
     useEffect(() => {
         const fetchCertificates = async () => {
             try {
                 const res = await fetch('/api/certifications');
-                const data = await res.json();
-                if (data.success && data.data) {
-                    setCertificates(data.data.length > 0 ? data.data : DUMMY_CERTIFICATES);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && data.data && data.data.length > 0) {
+                        setCertificates(data.data);
+                        isDataFetched.current = true;
+                    }
                 }
             } catch (error) {
                 console.error("Failed to fetch certifications", error);
@@ -266,6 +270,19 @@ export const CertificationsSection = () => {
         return result;
     }, [certificates, searchQuery, filter, issuerFilter, sortBy]);
 
+    const handleCopyCurrentCertLink = async () => {
+        if (!selectedCert) return;
+        const certId = String(selectedCert.id || selectedCert._id);
+        const shareUrl = `${window.location.origin}${window.location.pathname}?certificate=${certId}`;
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            setCopiedCertLink(true);
+            toast.success("Certificate link copied");
+            window.setTimeout(() => setCopiedCertLink(false), 1500);
+        } catch {
+            window.prompt("Copy certificate link:", shareUrl);
+        }
+    };
 
     return (
         <section ref={sectionRef} id="certifications" className="relative py-16 md:py-24 min-h-screen bg-transparent transition-colors duration-1000 overflow-hidden">
@@ -404,219 +421,210 @@ export const CertificationsSection = () => {
                 />
 
                 {/* Premium Animated Modal */}
-                <AnimatePresence>
-                    {selectedCert && (
-                        <>
-                            {/* Backdrop */}
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ duration: 0.3 }}
-                                onClick={() => closeCert()}
-                                className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
-                            />
+                <Dialog open={!!activeCertId} onOpenChange={(open) => !open && closeCert()}>
+                    <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] bg-gradient-to-br from-[#0f0f0f] via-[#0a0a0a] to-[#0f0f0f] border border-[#c5a059]/30 shadow-[0_0_60px_rgba(197,160,89,0.15)] p-0 overflow-hidden flex flex-col md:flex-row rounded-2xl">
+                        <VisuallyHidden>
+                            <DialogTitle>Certificate Details</DialogTitle>
+                        </VisuallyHidden>
+                        {!selectedCert ? (
+                            <div className="w-full h-full flex items-center justify-center bg-black/50 p-12">
+                                <div className="text-[#c5a059] font-serif animate-pulse flex flex-col items-center">
+                                    <Award className="w-12 h-12 mb-4 animate-spin" />
+                                    <span className="tracking-widest">VERIFYING_CREDENTIALS...</span>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Decorative Corner Accents */}
+                                <div className="absolute top-0 left-0 w-20 h-20 border-t-2 border-l-2 border-[#c5a059]/40 rounded-tl-2xl pointer-events-none" />
+                                <div className="absolute bottom-0 right-0 w-20 h-20 border-b-2 border-r-2 border-[#c5a059]/40 rounded-br-2xl pointer-events-none" />
 
-                            {/* Modal Content */}
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.85, y: 50 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.85, y: 50 }}
-                                transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                                className="fixed inset-4 md:inset-[10%] lg:inset-[15%] z-50 flex items-center justify-center pointer-events-none"
-                            >
-                                <div className="relative max-w-5xl w-full max-h-[90vh] bg-gradient-to-br from-[#0f0f0f] via-[#0a0a0a] to-[#0f0f0f] border border-[#c5a059]/30 shadow-[0_0_60px_rgba(197,160,89,0.15)] overflow-hidden flex flex-col md:flex-row rounded-2xl pointer-events-auto">
+                                {/* Gold Glow Effect */}
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#c5a059]/5 rounded-full blur-[100px] pointer-events-none" />
 
-                                    {/* Decorative Corner Accents */}
-                                    <div className="absolute top-0 left-0 w-20 h-20 border-t-2 border-l-2 border-[#c5a059]/40 rounded-tl-2xl pointer-events-none" />
-                                    <div className="absolute bottom-0 right-0 w-20 h-20 border-b-2 border-r-2 border-[#c5a059]/40 rounded-br-2xl pointer-events-none" />
+                                {/* Left: Certificate Image */}
+                                <div className="w-full md:w-3/5 relative p-6 md:p-10 flex items-center justify-center border-b md:border-b-0 md:border-r border-[#c5a059]/10">
+                                    {/* Grid Pattern */}
+                                    <div className="absolute inset-0 bg-[linear-gradient(rgba(197,160,89,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(197,160,89,0.03)_1px,transparent_1px)] bg-[size:30px_30px] pointer-events-none" />
 
-                                    {/* Gold Glow Effect */}
-                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#c5a059]/5 rounded-full blur-[100px] pointer-events-none" />
-
-                                    {/* Left: Certificate Image */}
-                                    <div className="w-full md:w-3/5 relative p-6 md:p-10 flex items-center justify-center border-b md:border-b-0 md:border-r border-[#c5a059]/10">
-                                        {/* Grid Pattern */}
-                                        <div className="absolute inset-0 bg-[linear-gradient(rgba(197,160,89,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(197,160,89,0.03)_1px,transparent_1px)] bg-[size:30px_30px] pointer-events-none" />
-
-                                        {selectedCert?.image ? (
-                                            <motion.div
-                                                initial={{ scale: 0.9, opacity: 0 }}
-                                                animate={{ scale: 1, opacity: 1 }}
-                                                transition={{ delay: 0.1, duration: 0.4 }}
-                                                className="relative"
-                                            >
-                                                {/* Certificate Frame */}
-                                                <div className="relative p-2 bg-gradient-to-br from-[#c5a059]/20 to-[#8a6e36]/10 rounded-lg">
-                                                    <div className="absolute inset-0 border-2 border-[#c5a059]/30 rounded-lg" />
-                                                    <img
-                                                        src={selectedCert.image}
-                                                        alt={selectedCert.title}
-                                                        className="w-full h-auto max-h-[60vh] object-contain rounded shadow-2xl relative z-10"
-                                                    />
+                                    <motion.div
+                                        initial={{ scale: 0.9, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        transition={{ delay: 0.1, duration: 0.4 }}
+                                        className="relative"
+                                    >
+                                        {/* Certificate Frame */}
+                                        <div className="relative p-2 bg-gradient-to-br from-[#c5a059]/20 to-[#8a6e36]/10 rounded-lg">
+                                            <div className="absolute inset-0 border-2 border-[#c5a059]/30 rounded-lg" />
+                                            {selectedCert?.image ? (
+                                                <img
+                                                    src={selectedCert.image}
+                                                    alt={selectedCert.title}
+                                                    className="w-full h-auto max-h-[60vh] object-contain rounded shadow-2xl relative z-10"
+                                                />
+                                            ) : (
+                                                <div className="w-[300px] h-[400px] flex items-center justify-center">
+                                                    <Award className="w-16 h-16 text-[#c5a059]/20" />
                                                 </div>
+                                            )}
+                                        </div>
 
-                                                {/* Floating Badge */}
-                                                <motion.div
-                                                    initial={{ scale: 0, opacity: 0 }}
-                                                    animate={{ scale: 1, opacity: 1 }}
-                                                    transition={{ delay: 0.3, type: "spring" }}
-                                                    className="absolute -bottom-4 -right-4 w-16 h-16 rounded-full bg-gradient-to-br from-[#c5a059] to-[#8a6e36] shadow-[0_0_30px_rgba(197,160,89,0.4)] flex items-center justify-center z-20"
-                                                >
-                                                    <Award className="w-8 h-8 text-white" />
-                                                </motion.div>
-                                            </motion.div>
-                                        ) : (
-                                            <div className="text-[#c5a059]/20 font-serif text-xl border-4 border-[#c5a059]/20 p-12 rounded-lg">
-                                                <Award className="w-16 h-16 mx-auto mb-4" />
-                                                IMAGE UNAVAILABLE
+                                        {/* Floating Badge */}
+                                        <motion.div
+                                            initial={{ scale: 0, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            transition={{ delay: 0.3, type: "spring" }}
+                                            className="absolute -bottom-4 -right-4 w-16 h-16 rounded-full bg-gradient-to-br from-[#c5a059] to-[#8a6e36] shadow-[0_0_30px_rgba(197,160,89,0.4)] flex items-center justify-center z-20"
+                                        >
+                                            <Award className="w-8 h-8 text-white" />
+                                        </motion.div>
+                                    </motion.div>
+                                </div>
+
+                                {/* Right: Details Panel */}
+                                <div className="w-full md:w-2/5 p-6 md:p-8 flex flex-col relative overflow-y-auto max-h-[50vh] md:max-h-none">
+                                    <div className="absolute top-4 right-4 z-20 flex items-center gap-2 pr-12">
+                                        <Button
+                                            type="button"
+                                            onClick={handleCopyCurrentCertLink}
+                                            className={`h-9 px-3 text-xs rounded-sm ${copiedCertLink ? "bg-emerald-600 hover:bg-emerald-600 text-white" : "bg-[#c5a059] hover:bg-[#d4af68] text-black font-bold"}`}
+                                        >
+                                            {copiedCertLink ? <Check className="w-3.5 h-3.5 mr-1.5" /> : <Link2 className="w-3.5 h-3.5 mr-1.5" />}
+                                            {copiedCertLink ? "COPIED" : "COPY LINK"}
+                                        </Button>
+                                    </div>
+
+                                    {/* Category Badge */}
+                                    <motion.div
+                                        initial={{ x: -20, opacity: 0 }}
+                                        animate={{ x: 0, opacity: 1 }}
+                                        transition={{ delay: 0.15 }}
+                                        className="mb-4"
+                                    >
+                                        <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-[#c5a059]/20 to-[#c5a059]/5 border border-[#c5a059]/40 text-[#c5a059] text-xs font-bold rounded-full tracking-wider">
+                                            <span className="w-2 h-2 rounded-full bg-[#c5a059] animate-pulse" />
+                                            {selectedCert?.category?.toUpperCase() || 'CERTIFIED'}
+                                        </span>
+                                    </motion.div>
+
+                                    {/* Title */}
+                                    <motion.h2
+                                        initial={{ y: 20, opacity: 0 }}
+                                        animate={{ y: 0, opacity: 1 }}
+                                        transition={{ delay: 0.2 }}
+                                        className="text-2xl md:text-3xl font-bold text-white leading-tight mb-3 font-serif"
+                                    >
+                                        {selectedCert?.title}
+                                    </motion.h2>
+
+                                    {/* Description */}
+                                    {selectedCert?.description && (
+                                        <motion.p
+                                            initial={{ y: 20, opacity: 0 }}
+                                            animate={{ y: 0, opacity: 1 }}
+                                            transition={{ delay: 0.25 }}
+                                            className="text-zinc-400 text-sm leading-relaxed mb-6"
+                                        >
+                                            {selectedCert.description}
+                                        </motion.p>
+                                    )}
+
+                                    {/* Details — vertical stack with bespoke per-field design */}
+                                    <motion.div
+                                        initial={{ y: 20, opacity: 0 }}
+                                        animate={{ y: 0, opacity: 1 }}
+                                        transition={{ delay: 0.3 }}
+                                        className="space-y-3 pt-4 border-t border-[#c5a059]/10 mb-6"
+                                    >
+                                        {/* Issuer — horizontal pill */}
+                                        {selectedCert?.issuer && (
+                                            <div className="flex items-center gap-3 bg-white/[0.03] rounded-xl px-4 py-3 border border-white/5">
+                                                <div className="w-8 h-8 rounded-lg bg-[#c5a059]/10 flex items-center justify-center flex-shrink-0">
+                                                    <Building2 className="w-4 h-4 text-[#c5a059]" />
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <span className="text-[9px] uppercase tracking-[0.15em] text-zinc-500 block">Issued by</span>
+                                                    <span className="text-zinc-100 text-sm font-semibold block break-words">{selectedCert.issuer}</span>
+                                                </div>
                                             </div>
                                         )}
-                                    </div>
 
-                                    {/* Right: Details Panel */}
-                                    <div className="w-full md:w-2/5 p-6 md:p-8 flex flex-col relative overflow-y-auto max-h-[50vh] md:max-h-none">
-                                        {/* Close Button */}
-                                        <button
-                                            onClick={() => closeCert()}
-                                            className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full text-zinc-400 hover:text-white transition-all hover:rotate-90 duration-300 z-10"
-                                        >
-                                            <X className="w-5 h-5" />
-                                        </button>
-
-                                        {/* Category Badge */}
-                                        <motion.div
-                                            initial={{ x: -20, opacity: 0 }}
-                                            animate={{ x: 0, opacity: 1 }}
-                                            transition={{ delay: 0.15 }}
-                                            className="mb-4"
-                                        >
-                                            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-[#c5a059]/20 to-[#c5a059]/5 border border-[#c5a059]/40 text-[#c5a059] text-xs font-bold rounded-full tracking-wider">
-                                                <span className="w-2 h-2 rounded-full bg-[#c5a059] animate-pulse" />
-                                                {selectedCert?.category?.toUpperCase() || 'CERTIFIED'}
-                                            </span>
-                                        </motion.div>
-
-                                        {/* Title */}
-                                        <motion.h2
-                                            initial={{ y: 20, opacity: 0 }}
-                                            animate={{ y: 0, opacity: 1 }}
-                                            transition={{ delay: 0.2 }}
-                                            className="text-2xl md:text-3xl font-bold text-white leading-tight mb-3 font-serif"
-                                        >
-                                            {selectedCert?.title}
-                                        </motion.h2>
-
-                                        {/* Description */}
-                                        {selectedCert?.description && (
-                                            <motion.p
-                                                initial={{ y: 20, opacity: 0 }}
-                                                animate={{ y: 0, opacity: 1 }}
-                                                transition={{ delay: 0.25 }}
-                                                className="text-zinc-400 text-sm leading-relaxed mb-6"
-                                            >
-                                                {selectedCert.description}
-                                            </motion.p>
+                                        {/* Date / Duration — timeline style */}
+                                        {(selectedCert?.startDate || selectedCert?.endDate || selectedCert?.date) && (
+                                            <div className="bg-white/[0.03] rounded-xl px-4 py-3 border border-white/5">
+                                                <div className="flex items-center gap-2 mb-1.5">
+                                                    <Calendar className="w-3.5 h-3.5 text-[#c5a059]/60" />
+                                                    <span className="text-[9px] uppercase tracking-[0.15em] text-zinc-500">
+                                                        {selectedCert?.startDate && selectedCert?.endDate ? 'Duration' : 'Date'}
+                                                    </span>
+                                                </div>
+                                                {selectedCert?.startDate && selectedCert?.endDate ? (
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="px-2.5 py-1 bg-[#c5a059]/10 rounded-md text-zinc-100 text-xs font-semibold">{selectedCert.startDate}</span>
+                                                        <div className="flex items-center gap-1 text-[#c5a059]/40">
+                                                            <div className="w-1 h-1 rounded-full bg-[#c5a059]/40" />
+                                                            <div className="w-6 h-px bg-[#c5a059]/20" />
+                                                            <div className="w-1 h-1 rounded-full bg-[#c5a059]/40" />
+                                                        </div>
+                                                        <span className="px-2.5 py-1 bg-[#c5a059]/10 rounded-md text-zinc-100 text-xs font-semibold">{selectedCert.endDate}</span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-zinc-100 text-sm font-semibold break-words">{selectedCert?.startDate || selectedCert?.date}</span>
+                                                )}
+                                            </div>
                                         )}
 
-                                        {/* Details — vertical stack with bespoke per-field design */}
-                                        <motion.div
-                                            initial={{ y: 20, opacity: 0 }}
-                                            animate={{ y: 0, opacity: 1 }}
-                                            transition={{ delay: 0.3 }}
-                                            className="space-y-3 pt-4 border-t border-[#c5a059]/10 mb-6"
-                                        >
-                                            {/* Issuer — horizontal pill */}
-                                            {selectedCert?.issuer && (
-                                                <div className="flex items-center gap-3 bg-white/[0.03] rounded-xl px-4 py-3 border border-white/5">
-                                                    <div className="w-8 h-8 rounded-lg bg-[#c5a059]/10 flex items-center justify-center flex-shrink-0">
-                                                        <Building2 className="w-4 h-4 text-[#c5a059]" />
-                                                    </div>
-                                                    <div className="min-w-0 flex-1">
-                                                        <span className="text-[9px] uppercase tracking-[0.15em] text-zinc-500 block">Issued by</span>
-                                                        <span className="text-zinc-100 text-sm font-semibold block break-words">{selectedCert.issuer}</span>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Date / Duration — timeline style */}
-                                            {(selectedCert?.startDate || selectedCert?.endDate || selectedCert?.date) && (
-                                                <div className="bg-white/[0.03] rounded-xl px-4 py-3 border border-white/5">
-                                                    <div className="flex items-center gap-2 mb-1.5">
-                                                        <Calendar className="w-3.5 h-3.5 text-[#c5a059]/60" />
-                                                        <span className="text-[9px] uppercase tracking-[0.15em] text-zinc-500">
-                                                            {selectedCert?.startDate && selectedCert?.endDate ? 'Duration' : 'Date'}
-                                                        </span>
-                                                    </div>
-                                                    {selectedCert?.startDate && selectedCert?.endDate ? (
-                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                            <span className="px-2.5 py-1 bg-[#c5a059]/10 rounded-md text-zinc-100 text-xs font-semibold">{selectedCert.startDate}</span>
-                                                            <div className="flex items-center gap-1 text-[#c5a059]/40">
-                                                                <div className="w-1 h-1 rounded-full bg-[#c5a059]/40" />
-                                                                <div className="w-6 h-px bg-[#c5a059]/20" />
-                                                                <div className="w-1 h-1 rounded-full bg-[#c5a059]/40" />
-                                                            </div>
-                                                            <span className="px-2.5 py-1 bg-[#c5a059]/10 rounded-md text-zinc-100 text-xs font-semibold">{selectedCert.endDate}</span>
+                                        {/* Course Hours + Credential ID — side by side row */}
+                                        {(selectedCert?.courseHours || selectedCert?.credentialId) && (
+                                            <div className="flex gap-3">
+                                                {/* Course Hours — accent number */}
+                                                {selectedCert?.courseHours && (
+                                                    <div className="relative bg-[#c5a059]/[0.06] rounded-xl px-4 py-3 border border-[#c5a059]/15 overflow-hidden flex-shrink-0">
+                                                        <div className="absolute -top-3 -right-3 w-12 h-12 rounded-full bg-[#c5a059]/8 blur-lg pointer-events-none" />
+                                                        <span className="text-[9px] uppercase tracking-[0.15em] text-[#c5a059]/50 block mb-1">Hours</span>
+                                                        <div className="flex items-baseline gap-1">
+                                                            <span className="text-xl font-bold text-[#c5a059]">{selectedCert.courseHours}</span>
+                                                            <span className="text-[10px] text-[#c5a059]/40 font-medium">hrs</span>
                                                         </div>
-                                                    ) : (
-                                                        <span className="text-zinc-100 text-sm font-semibold break-words">{selectedCert?.startDate || selectedCert?.date}</span>
-                                                    )}
-                                                </div>
-                                            )}
+                                                    </div>
+                                                )}
 
-                                            {/* Course Hours + Credential ID — side by side row */}
-                                            {(selectedCert?.courseHours || selectedCert?.credentialId) && (
-                                                <div className="flex gap-3">
-                                                    {/* Course Hours — accent number */}
-                                                    {selectedCert?.courseHours && (
-                                                        <div className="relative bg-[#c5a059]/[0.06] rounded-xl px-4 py-3 border border-[#c5a059]/15 overflow-hidden flex-shrink-0">
-                                                            <div className="absolute -top-3 -right-3 w-12 h-12 rounded-full bg-[#c5a059]/8 blur-lg pointer-events-none" />
-                                                            <span className="text-[9px] uppercase tracking-[0.15em] text-[#c5a059]/50 block mb-1">Hours</span>
-                                                            <div className="flex items-baseline gap-1">
-                                                                <span className="text-xl font-bold text-[#c5a059]">{selectedCert.courseHours}</span>
-                                                                <span className="text-[10px] text-[#c5a059]/40 font-medium">hrs</span>
-                                                            </div>
+                                                {/* Credential ID — mono strip */}
+                                                {selectedCert?.credentialId && (
+                                                    <div className="flex-1 min-w-0 bg-white/[0.02] rounded-xl px-4 py-3 border border-white/5">
+                                                        <div className="flex items-center gap-1.5 mb-1.5">
+                                                            <CheckCircle2 className="w-3 h-3 text-emerald-500/60" />
+                                                            <span className="text-[9px] uppercase tracking-[0.15em] text-zinc-500">Credential ID</span>
                                                         </div>
-                                                    )}
+                                                        <span className="text-zinc-300 text-[11px] font-mono tracking-wider block break-all leading-relaxed select-all">{selectedCert.credentialId}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </motion.div>
 
-                                                    {/* Credential ID — mono strip */}
-                                                    {selectedCert?.credentialId && (
-                                                        <div className="flex-1 min-w-0 bg-white/[0.02] rounded-xl px-4 py-3 border border-white/5">
-                                                            <div className="flex items-center gap-1.5 mb-1.5">
-                                                                <CheckCircle2 className="w-3 h-3 text-emerald-500/60" />
-                                                                <span className="text-[9px] uppercase tracking-[0.15em] text-zinc-500">Credential ID</span>
-                                                            </div>
-                                                            <span className="text-zinc-300 text-[11px] font-mono tracking-wider block break-all leading-relaxed select-all">{selectedCert.credentialId}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </motion.div>
-
-                                        {/* Verify Button — only if URL exists */}
+                                    {/* Verify Button — only if URL exists */}
+                                    <motion.div
+                                        initial={{ y: 20, opacity: 0 }}
+                                        animate={{ y: 0, opacity: 1 }}
+                                        transition={{ delay: 0.35 }}
+                                        className="mt-auto space-y-2"
+                                    >
                                         {(selectedCert?.verifyUrl || selectedCert?.verificationUrl) && (
-                                            <motion.div
-                                                initial={{ y: 20, opacity: 0 }}
-                                                animate={{ y: 0, opacity: 1 }}
-                                                transition={{ delay: 0.35 }}
-                                                className="mt-auto"
+                                            <Button
+                                                onClick={() => window.open(selectedCert?.verifyUrl || (selectedCert as any)?.verificationUrl)}
+                                                className="w-full bg-gradient-to-r from-[#c5a059] to-[#a88a45] hover:from-[#d4af68] hover:to-[#b89950] text-black font-bold h-12 rounded-xl shadow-[0_0_30px_rgba(197,160,89,0.25)] transition-all hover:shadow-[0_0_40px_rgba(197,160,89,0.4)] hover:scale-[1.02]"
                                             >
-                                                <Button
-                                                    onClick={() => window.open(selectedCert?.verifyUrl || (selectedCert as any)?.verificationUrl)}
-                                                    className="w-full bg-gradient-to-r from-[#c5a059] to-[#a88a45] hover:from-[#d4af68] hover:to-[#b89950] text-black font-bold h-12 rounded-xl shadow-[0_0_30px_rgba(197,160,89,0.25)] transition-all hover:shadow-[0_0_40px_rgba(197,160,89,0.4)] hover:scale-[1.02]"
-                                                >
-                                                    Verify Credential
-                                                    <ExternalLink className="w-4 h-4 ml-2" />
-                                                </Button>
-                                            </motion.div>
+                                                Verify Credential
+                                                <ExternalLink className="w-4 h-4 ml-2" />
+                                            </Button>
                                         )}
-                                    </div>
+                                    </motion.div>
                                 </div>
-                            </motion.div>
-                        </>
-                    )}
-                </AnimatePresence>
-            </div>
+                            </>
+                        )}
+                    </DialogContent>
+                </Dialog>            </div>
         </section>
     );
 };

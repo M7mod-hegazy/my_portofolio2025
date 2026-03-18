@@ -1,13 +1,15 @@
-import { Bell, Search, Globe, Moon, Sun } from "lucide-react";
+import { Bell, Search, Globe, Moon, Sun, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/context/ThemeContext";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { clearStoredAdminToken } from "@/lib/adminAuth";
 
 export const AdminHeader = () => {
     // ThemeContext currently supports section-based theming, not global toggle yet.
     // Using placeholders for now.
     const { currentTheme } = useTheme();
     const location = useLocation();
+    const navigate = useNavigate();
 
     // Generate breadcrumbs from path
     const pathSegments = location.pathname.split('/').filter(Boolean);
@@ -53,6 +55,18 @@ export const AdminHeader = () => {
                         <span className="hidden sm:inline">View Live Site</span>
                     </Button>
                 </Link>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 bg-white/5 border-white/10 hover:bg-white/10 text-white"
+                    onClick={() => {
+                        clearStoredAdminToken();
+                        navigate('/admin/login');
+                    }}
+                >
+                    <LogOut size={16} />
+                    <span className="hidden sm:inline">Logout</span>
+                </Button>
             </div>
         </header>
     );

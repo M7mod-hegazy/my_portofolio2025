@@ -24,6 +24,8 @@ import { AboutAdmin } from "./components/admin/about/AboutAdmin";
 import { CertificationsAdmin } from "./components/admin/certifications/CertificationsAdmin";
 import { MessagesAdmin } from "./components/admin/messages/MessagesAdmin";
 import { LoadingScreen } from "./components/LoadingScreen";
+import { AdminRouteGuard } from "./components/admin/AdminRouteGuard";
+import AdminLogin from "./pages/AdminLogin";
 import "../src/styles/theme.css";
 
 // Lazy load heavy components for performance
@@ -44,9 +46,10 @@ const App = () => (
                   <Routes>
                     {/* Public Routes */}
                     <Route path="/" element={<Index />} />
+                    <Route path="/admin/login" element={<AdminLogin />} />
 
                     {/* Admin Routes */}
-                    <Route path="/admin" element={<AdminLayout />}>
+                    <Route path="/admin" element={<AdminRouteGuard><AdminLayout /></AdminRouteGuard>}>
                       <Route index element={<DashboardHome />} />
                       <Route path="dashboard" element={<DashboardHome />} />
                       <Route path="hero" element={<HeroAdmin />} />

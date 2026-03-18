@@ -7,9 +7,45 @@ import { v2 as cloudinary } from 'cloudinary';
 import { Readable } from 'stream';
 import fs from 'fs';
 import path from 'path';
+import { randomBytes, scryptSync, timingSafeEqual, createHmac } from 'crypto';
 import type { IncomingMessage, ServerResponse } from 'http';
 
 dotenv.config();
+
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '275757';
+const ADMIN_TOKEN_SECRET = process.env.ADMIN_TOKEN_SECRET || 'replace-this-admin-token-secret';
+
+type AdminTokenPayload = { sub: string; username: string; exp: number };
+
+function toBase64Url(value: string) {
+    return Buffer.from(value).toString('base64url');
+}
+
+function createPasswordHash(password: string, salt: string) {
+    return scryptSync(password, salt, 64).toString('hex');
+}
+
+function createAdminToken(payload: AdminTokenPayload) {
+    const header = toBase64Url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+    const body = toBase64Url(JSON.stringify(payload));
+    const signature = createHmac('sha256', ADMIN_TOKEN_SECRET).update(`${header}.${body}`).digest('base64url');
+    return `${header}.${body}.${signature}`;
+}
+
+function verifyAdminToken(token: string): AdminTokenPayload | null {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const [header, body, signature] = parts;
+    const expectedSignature = createHmac('sha256', ADMIN_TOKEN_SECRET).update(`${header}.${body}`).digest('base64url');
+    const signatureBuffer = Buffer.from(signature);
+    const expectedBuffer = Buffer.from(expectedSignature);
+    if (signatureBuffer.length !== expectedBuffer.length) return null;
+    if (!timingSafeEqual(signatureBuffer, expectedBuffer)) return null;
+    const payload = JSON.parse(Buffer.from(body, 'base64url').toString()) as AdminTokenPayload;
+    if (!payload.exp || payload.exp < Date.now()) return null;
+    return payload;
+}
 
 export function createApiServer() {
     const app = express();
@@ -170,6 +206,15 @@ export function createApiServer() {
     });
     const ContactMessage = mongoose.models.ContactMessage || mongoose.model('ContactMessage', ContactMessageSchema);
 
+    const AdminUserSchema = new mongoose.Schema({
+        username: { type: String, required: true, unique: true },
+        passwordHash: { type: String, required: true },
+        salt: { type: String, required: true },
+        createdAt: { type: Date, default: Date.now },
+        updatedAt: { type: Date, default: Date.now }
+    });
+    const AdminUser = mongoose.models.AdminUser || mongoose.model('AdminUser', AdminUserSchema);
+
     // --- Seed Logic ---
     const seedDefaultHero = async () => {
         try {
@@ -209,7 +254,59 @@ export function createApiServer() {
     };
     seedDefaultCategories();
 
+    const seedAdminUser = async () => {
+        try {
+            const salt = randomBytes(16).toString('hex');
+            const passwordHash = createPasswordHash(ADMIN_PASSWORD, salt);
+            await AdminUser.findOneAndUpdate(
+                { username: ADMIN_USERNAME },
+                { username: ADMIN_USERNAME, passwordHash, salt, updatedAt: new Date() },
+                { upsert: true, new: true, setDefaultsOnInsert: true }
+            );
+        } catch (error) {
+            console.error('Error seeding admin user:', error);
+        }
+    };
+    seedAdminUser();
+
     // --- API Routes ---
+
+    app.post('/admin/auth/login', async (req: Request, res: Response) => {
+        try {
+            const { username, password } = req.body || {};
+            if (!username || !password) {
+                return res.status(400).json({ success: false, error: 'Username and password are required' });
+            }
+            const user = await AdminUser.findOne({ username: String(username).trim() });
+            if (!user) {
+                return res.status(401).json({ success: false, error: 'Invalid credentials' });
+            }
+            const providedHash = createPasswordHash(String(password), user.salt);
+            const providedBuffer = Buffer.from(providedHash);
+            const storedBuffer = Buffer.from(user.passwordHash);
+            if (providedBuffer.length !== storedBuffer.length || !timingSafeEqual(providedBuffer, storedBuffer)) {
+                return res.status(401).json({ success: false, error: 'Invalid credentials' });
+            }
+            const token = createAdminToken({
+                sub: String(user._id),
+                username: user.username,
+                exp: Date.now() + 1000 * 60 * 60 * 8
+            });
+            return res.status(200).json({ success: true, data: { token, username: user.username } });
+        } catch (error) {
+            return res.status(400).json({ success: false, error: (error as Error).message });
+        }
+    });
+
+    app.get('/admin/auth/verify', async (req: Request, res: Response) => {
+        const authHeader = req.headers.authorization || '';
+        const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+        const payload = token ? verifyAdminToken(token) : null;
+        if (!payload) {
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+        return res.status(200).json({ success: true, data: { username: payload.username } });
+    });
 
     // Projects
     app.get('/projects', async (req: Request, res: Response) => {

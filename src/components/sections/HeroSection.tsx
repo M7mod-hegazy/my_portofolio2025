@@ -14,6 +14,15 @@ interface HeroData {
   socialLinks: boolean;
 }
 
+const defaultHeroData: HeroData = {
+  greeting: "Hello, I'm",
+  title: "Your Name",
+  subtitle: "Creative Developer",
+  description: "I build immersive web experiences with modern technologies.",
+  resumeUrl: "",
+  socialLinks: true,
+};
+
 interface ContactInfo {
   github?: string;
   linkedin?: string;
@@ -24,7 +33,7 @@ interface ContactInfo {
 }
 
 export const HeroSection = ({ previewData }: { previewData?: HeroData }) => {
-  const [heroData, setHeroData] = useState<HeroData | null>(null);
+  const [heroData, setHeroData] = useState<HeroData>(defaultHeroData);
   const [contactInfo, setContactInfo] = useState<ContactInfo>({});
   const [cvUrl, setCvUrl] = useState<string | null>(null);
   const [cvFilename, setCvFilename] = useState<string>('resume.pdf');
@@ -34,74 +43,77 @@ export const HeroSection = ({ previewData }: { previewData?: HeroData }) => {
     offset: ["start start", "end start"],
   });
 
-  const [isMounted, setIsMounted] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
   useEffect(() => {
+    let isCancelled = false;
+    const controller = new AbortController();
+
     const fetchHeroData = async () => {
       try {
-        console.log("HeroSection: Fetching /api/hero...");
-        const response = await fetch('/api/hero');
-        console.log("HeroSection: Response status:", response.status);
-
+        const response = await fetch('/api/hero', { signal: controller.signal });
         const json = await response.json();
-        console.log("HeroSection: JSON data:", json);
-
-        if (json.success && json.data) {
+        if (!isCancelled && json.success && json.data) {
           setHeroData(json.data);
-        } else {
-          console.warn("HeroSection: No data or success=false", json);
         }
       } catch (error) {
-        console.error('HeroSection: Error fetching hero data:', error);
-      } finally {
-        // Ensure hydration animation completes
-        setTimeout(() => setIsMounted(true), 100);
+        if (!isCancelled) {
+          console.error('HeroSection: Error fetching hero data:', error);
+        }
       }
     };
 
     const fetchContactInfo = async () => {
       try {
-        const response = await fetch('/api/contact');
+        const response = await fetch('/api/contact', { signal: controller.signal });
         const json = await response.json();
-        if (json.success && json.data) {
+        if (!isCancelled && json.success && json.data) {
           setContactInfo(json.data);
         }
       } catch (error) {
-        console.error('HeroSection: Error fetching contact info:', error);
+        if (!isCancelled) {
+          console.error('HeroSection: Error fetching contact info:', error);
+        }
       }
     };
 
     const fetchCvData = async () => {
       try {
-        const response = await fetch('/api/cv');
+        const response = await fetch('/api/cv', { signal: controller.signal });
         const json = await response.json();
-        if (json.success && json.data && json.data.url) {
+        if (!isCancelled && json.success && json.data && json.data.url) {
           setCvUrl(json.data.url);
           if (json.data.filename) setCvFilename(json.data.filename);
         }
       } catch (error) {
-        console.error('HeroSection: Error fetching CV:', error);
+        if (!isCancelled) {
+          console.error('HeroSection: Error fetching CV:', error);
+        }
       }
     };
 
-    // If preview data is provided, use it directly (Admin Mode)
     if (previewData) {
-      console.log("HeroSection: Using previewData", previewData);
       setHeroData(previewData);
-      setIsMounted(true);
     } else {
-      console.log("HeroSection: No previewData, fetching from API...");
       fetchHeroData();
     }
     fetchContactInfo();
     fetchCvData();
+    const readyTimer = window.setTimeout(() => {
+      if (!isCancelled) setIsReady(true);
+    }, 80);
+
+    return () => {
+      isCancelled = true;
+      controller.abort();
+      window.clearTimeout(readyTimer);
+    };
   }, [previewData]);
 
-  if (!heroData || !isMounted) { // Added !isMounted to loading condition
-    // Loading state or fallback
+  if (!isReady) {
     return (
       <section ref={containerRef} className="h-screen w-full bg-black flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-purple-500"></div>

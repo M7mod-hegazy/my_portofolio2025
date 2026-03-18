@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Download, Github, Linkedin, Twitter, Instagram, Facebook,
-  MapPin, ArrowRight, Award, Target, Heart, Sparkles
+  MapPin, ArrowRight, Target, Heart, Sparkles, FolderKanban, Medal
 } from "lucide-react";
 import { motion, useInView } from "framer-motion";
 import * as LucideIcons from "lucide-react";
@@ -138,6 +138,10 @@ export const AboutSection = () => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.1, 0.25, 1] as const } }
   };
 
+  const navigateToSection = (sectionId: "projects" | "certifications") => {
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <section ref={containerRef} id="about" className="py-16 md:py-24 lg:py-32 relative overflow-hidden bg-gradient-to-b from-background via-background/95 to-background">
       {/* Neon Orbs Background */}
@@ -214,19 +218,28 @@ export const AboutSection = () => {
             </p>
           </div>
 
-          {/* Stats Grid — 2×2 */}
-          <div className="grid grid-cols-2 gap-3">
-            {data.stats.slice(0, 4).map((stat, i) => (
-              <div
-                key={i}
-                className="bg-gray-900/60 border border-white/5 rounded-xl p-4 text-center"
+          <div className="bg-gradient-to-r from-cyan-500/10 via-cyan-500/5 to-sky-500/10 border border-cyan-500/20 rounded-2xl p-4">
+            <p className="text-[11px] text-gray-400 uppercase tracking-[0.18em] mb-2">Explore Portfolio</p>
+            <h3 className="text-lg font-semibold text-white mb-1">Pick where you want to continue</h3>
+            <p className="text-[12px] text-gray-400 mb-4">Jump directly to validated credentials or production-ready work.</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => navigateToSection("certifications")}
+                className="rounded-xl border border-cyan-500/30 bg-black/30 px-3 py-3 text-left active:scale-[0.98] transition"
               >
-                <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-cyan-400">{stat.value}</div>
-                <div className="text-[10px] text-gray-400 font-medium uppercase tracking-wider mt-1">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
+                <Medal className="w-4 h-4 text-cyan-300 mb-2" />
+                <p className="text-xs text-white font-semibold">Certificates</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">View credentials</p>
+              </button>
+              <button
+                onClick={() => navigateToSection("projects")}
+                className="rounded-xl border border-cyan-500/30 bg-black/30 px-3 py-3 text-left active:scale-[0.98] transition"
+              >
+                <FolderKanban className="w-4 h-4 text-cyan-300 mb-2" />
+                <p className="text-xs text-white font-semibold">Projects</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">See case studies</p>
+              </button>
+            </div>
           </div>
 
           {/* Passions Row */}
@@ -342,20 +355,43 @@ export const AboutSection = () => {
             </div>
           </motion.div>
 
-          {/* Card 4: Stats */}
+          {/* Card 4: Navigation Hub */}
           <motion.div variants={itemVariants} className="md:col-span-2 lg:col-span-2">
-            <div className="h-full p-6 rounded-3xl bg-white/5 border border-white/10 hover:border-white/20 transition-all duration-500">
-              <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-                <Award size={20} className="text-yellow-400" />
-                By The Numbers
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {data.stats.map((stat, i) => (
-                  <div key={i} className="text-center p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-primary/30 transition-colors">
-                    <div className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-cyan-400">{stat.value}</div>
-                    <div className="text-xs text-gray-500 mt-1 uppercase tracking-wider">{stat.label}</div>
+            <div className="h-full p-6 rounded-3xl bg-gradient-to-r from-cyan-500/15 via-cyan-500/5 to-sky-500/10 border border-cyan-500/30 hover:border-cyan-400/50 transition-all duration-500">
+              <div className="mb-6">
+                <p className="text-xs uppercase tracking-[0.2em] text-cyan-300 mb-2">Navigate Portfolio</p>
+                <h3 className="text-2xl font-bold text-white mb-2">Choose your next stop</h3>
+                <p className="text-sm text-gray-300 max-w-xl">Review verified certificates for credibility or explore shipped projects to understand technical depth and product impact.</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button
+                  onClick={() => navigateToSection("certifications")}
+                  className="group rounded-2xl border border-cyan-500/25 bg-black/30 p-5 text-left hover:border-cyan-300/60 hover:bg-black/40 transition-all"
+                >
+                  <div className="w-11 h-11 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center mb-4">
+                    <Medal className="w-5 h-5 text-cyan-300" />
                   </div>
-                ))}
+                  <h4 className="text-lg font-semibold text-white mb-1">View Certificates</h4>
+                  <p className="text-sm text-gray-400 mb-4">Browse accredited programs, providers, and verification details.</p>
+                  <span className="inline-flex items-center gap-2 text-cyan-300 text-sm font-medium">
+                    Open Certifications
+                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  </span>
+                </button>
+                <button
+                  onClick={() => navigateToSection("projects")}
+                  className="group rounded-2xl border border-cyan-500/25 bg-black/30 p-5 text-left hover:border-cyan-300/60 hover:bg-black/40 transition-all"
+                >
+                  <div className="w-11 h-11 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center mb-4">
+                    <FolderKanban className="w-5 h-5 text-cyan-300" />
+                  </div>
+                  <h4 className="text-lg font-semibold text-white mb-1">Explore Projects</h4>
+                  <p className="text-sm text-gray-400 mb-4">Open project case studies with media, stack, and deployment links.</p>
+                  <span className="inline-flex items-center gap-2 text-cyan-300 text-sm font-medium">
+                    Open Projects
+                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  </span>
+                </button>
               </div>
             </div>
           </motion.div>
