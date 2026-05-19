@@ -625,19 +625,12 @@ export function createApiServer() {
             const cvUrl = cv.url as string;
             console.log('[CV/DOWNLOAD] url:', cvUrl, '| file:', filename);
 
-            // Case 1: Local file URL (new approach — stored in uploads/cv/ on disk)
+            // Case 1: Old local-file URL — not supported on serverless; prompt re-upload
             if (cvUrl.startsWith('/api/cv-files/')) {
-                const localFilename = cvUrl.replace('/api/cv-files/', '');
-                const filePath = path.join(process.cwd(), 'uploads', 'cv', localFilename);
-                if (!fs.existsSync(filePath)) {
-                    return res.status(404).json({ success: false, error: 'CV file not found on server.' });
-                }
-                res.setHeader('Content-Type', 'application/pdf');
-                res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-                return res.sendFile(filePath);
+                return res.status(410).json({ success: false, error: 'CV was stored locally and is no longer available. Please re-upload your CV.' });
             }
 
-            // Case 2: Legacy Cloudinary URL — try signed delivery redirect
+            // Case 2: Cloudinary URL — generate signed delivery URL to bypass access restrictions
             const uploadMatch = cvUrl.match(/\/upload\/(?:v\d+\/)?(.+)$/);
             if (uploadMatch) {
                 const fullPath = uploadMatch[1];
@@ -647,7 +640,7 @@ export function createApiServer() {
                     sign_url: true,
                     secure: true,
                 });
-                console.log('[CV/DOWNLOAD] Legacy Cloudinary redirect:', signedDeliveryUrl);
+                console.log('[CV/DOWNLOAD] Cloudinary redirect:', signedDeliveryUrl);
                 return res.redirect(302, signedDeliveryUrl);
             }
 
@@ -832,29 +825,34 @@ export function createApiServer() {
             const uploadPromises = files.map(file => {
                 const isPdf = file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
 
-                // PDFs: store locally to avoid Cloudinary raw file access restrictions (account-level 401)
+                // PDFs: upload to Cloudinary as raw resource.
+                // The /api/cv/download endpoint generates a signed delivery URL so access restrictions are bypassed.
                 if (isPdf) {
                     return new Promise<object>((resolve, reject) => {
-                        const safeFilename = `cv_${Date.now()}_${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-                        const destPath = path.join(process.cwd(), 'uploads', 'cv', safeFilename);
-                        fs.writeFile(destPath, file.buffer, (err) => {
-                            if (err) {
-                                console.error('[Upload] Failed to save PDF locally:', err);
-                                reject(err);
-                            } else {
-                                // URL will be served by Express static: /api/cv-files/<filename>
-                                // In dev: http://localhost:5173/api/cv-files/<filename>
-                                const localUrl = `/api/cv-files/${safeFilename}`;
-                                console.log('[Upload] PDF saved locally:', destPath, '→', localUrl);
-                                resolve({
-                                    originalName: file.originalname,
-                                    filename: file.originalname,
-                                    url: localUrl,
-                                    size: file.size,
-                                    resource_type: 'local',
-                                });
+                        const safePublicId = `portfolio/documents/cv_${Date.now()}_${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+                        const uploadStream = cloudinary.uploader.upload_stream(
+                            { resource_type: 'raw', public_id: safePublicId, overwrite: true },
+                            (error, result) => {
+                                if (error) {
+                                    console.error('[Upload] Cloudinary PDF upload error:', error);
+                                    reject(error);
+                                } else {
+                                    console.log('[Upload] PDF uploaded to Cloudinary:', result?.secure_url);
+                                    resolve({
+                                        originalName: file.originalname,
+                                        filename: file.originalname,
+                                        url: result?.secure_url,
+                                        publicId: result?.public_id,
+                                        size: result?.bytes,
+                                        resource_type: 'raw',
+                                    });
+                                }
                             }
-                        });
+                        );
+                        const readable = new Readable();
+                        readable.push(file.buffer);
+                        readable.push(null);
+                        readable.pipe(uploadStream);
                     });
                 }
 

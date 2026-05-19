@@ -66,7 +66,7 @@ export const AdminLayout = () => {
             {/* --- THE VOID BACKGROUND --- */}
             <div className="fixed inset-0 z-0 pointer-events-none">
                 {/* Deep Noise Texture */}
-                <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-100 contrast-150" />
+                <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay bg-[url('/noise.svg')] brightness-100 contrast-150" />
 
                 {/* Animated Orbs */}
                 <motion.div

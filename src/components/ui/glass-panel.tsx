@@ -34,7 +34,7 @@ export const GlassPanel = ({
             {...props}
         >
             {/* Noise texture overlay for premium feel */}
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+            <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('/noise.svg')]" />
 
             {/* Gradient Glow Effect on Hover (if enabled) */}
             {hoverEffect && (

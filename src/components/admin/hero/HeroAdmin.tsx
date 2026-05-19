@@ -193,7 +193,7 @@ export const HeroAdmin = () => {
 
                 {/* Preview Container */}
                 <div className="flex-1 bg-[#050510] rounded-2xl border border-white/10 shadow-2xl relative overflow-hidden flex justify-center items-center">
-                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] pointer-events-none" />
+                    <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.03] pointer-events-none" />
 
                     <motion.div
                         layout
