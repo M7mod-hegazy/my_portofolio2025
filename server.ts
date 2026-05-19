@@ -613,8 +613,8 @@ export function createApiServer() {
         }
     });
 
-    // CV Download — serves local PDF files directly, falls back to Cloudinary signed URL for legacy entries
-    app.get('/cv/download', async (req: Request, res: Response) => {
+    // CV Download / View — proxies the PDF through the server to avoid CORS and Cloudinary auth issues
+    const streamCvProxy = async (req: Request, res: Response, inline: boolean) => {
         try {
             const cv = await CV.findOne().sort({ createdAt: -1 });
             if (!cv || !cv.url) {
@@ -623,34 +623,65 @@ export function createApiServer() {
 
             const filename = (cv.filename as string | undefined) || 'resume.pdf';
             const cvUrl = cv.url as string;
-            console.log('[CV/DOWNLOAD] url:', cvUrl, '| file:', filename);
+            console.log('[CV] mode:', inline ? 'view' : 'download', '| url:', cvUrl);
 
-            // Case 1: Old local-file URL — not supported on serverless; prompt re-upload
             if (cvUrl.startsWith('/api/cv-files/')) {
                 return res.status(410).json({ success: false, error: 'CV was stored locally and is no longer available. Please re-upload your CV.' });
             }
 
-            // Case 2: Cloudinary URL — generate signed delivery URL to bypass access restrictions
-            const uploadMatch = cvUrl.match(/\/upload\/(?:v\d+\/)?(.+)$/);
-            if (uploadMatch) {
-                const fullPath = uploadMatch[1];
-                const signedDeliveryUrl = cloudinary.url(fullPath, {
-                    resource_type: 'raw',
-                    type: 'upload',
-                    sign_url: true,
-                    secure: true,
-                });
-                console.log('[CV/DOWNLOAD] Cloudinary redirect:', signedDeliveryUrl);
-                return res.redirect(302, signedDeliveryUrl);
+            let fetchUrl = cvUrl;
+            let upstream: globalThis.Response;
+
+            // Try the direct CDN URL first (works if resource is publicly accessible)
+            upstream = await fetch(cvUrl);
+
+            // If 401/403, fall back to a signed delivery URL fetched server-side.
+            // Fetching signed URLs server-side avoids browser CORS/auth issues.
+            if (!upstream.ok && (upstream.status === 401 || upstream.status === 403)) {
+                console.log('[CV] Direct URL gave', upstream.status, '— trying signed URL server-side');
+                const uploadMatch = cvUrl.match(/\/upload\/(?:v\d+\/)?(.+)$/);
+                if (uploadMatch) {
+                    const fullPath = uploadMatch[1];
+                    fetchUrl = cloudinary.url(fullPath, {
+                        resource_type: 'raw',
+                        type: 'upload',
+                        sign_url: true,
+                        secure: true,
+                    });
+                    console.log('[CV] Signed URL:', fetchUrl);
+                    upstream = await fetch(fetchUrl);
+                }
             }
 
-            // Case 3: External URL — redirect directly
-            return res.redirect(302, cvUrl);
+            if (!upstream.ok) {
+                console.error('[CV] Upstream fetch failed:', upstream.status, upstream.statusText);
+                return res.status(upstream.status).json({ success: false, error: `Failed to fetch CV: ${upstream.statusText}` });
+            }
+
+            const disposition = inline ? `inline; filename="${filename}"` : `attachment; filename="${filename}"`;
+            res.setHeader('Content-Disposition', disposition);
+            res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/pdf');
+            const contentLength = upstream.headers.get('content-length');
+            if (contentLength) res.setHeader('Content-Length', contentLength);
+
+            const reader = upstream.body?.getReader();
+            if (!reader) return res.status(500).json({ success: false, error: 'No response body from upstream' });
+
+            const nodeStream = new Readable({
+                async read() {
+                    const { done, value } = await reader.read();
+                    if (done) { this.push(null); } else { this.push(Buffer.from(value)); }
+                }
+            });
+            nodeStream.pipe(res);
         } catch (error) {
-            console.error('[CV/DOWNLOAD] ERROR:', (error as Error).message);
+            console.error('[CV] ERROR:', (error as Error).message);
             res.status(500).json({ success: false, error: (error as Error).message });
         }
-    });
+    };
+
+    app.get('/cv/download', (req: Request, res: Response) => streamCvProxy(req, res, false));
+    app.get('/cv/view', (req: Request, res: Response) => streamCvProxy(req, res, true));
 
 
     // CV Debug — returns diagnostic JSON (open this in the browser to diagnose)
@@ -831,7 +862,7 @@ export function createApiServer() {
                     return new Promise<object>((resolve, reject) => {
                         const safePublicId = `portfolio/documents/cv_${Date.now()}_${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
                         const uploadStream = cloudinary.uploader.upload_stream(
-                            { resource_type: 'raw', public_id: safePublicId, overwrite: true },
+                            { resource_type: 'raw', public_id: safePublicId, overwrite: true, access_mode: 'public' },
                             (error, result) => {
                                 if (error) {
                                     console.error('[Upload] Cloudinary PDF upload error:', error);
