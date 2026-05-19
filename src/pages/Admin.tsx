@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import { compressImage } from '@/lib/compressImage';
 import { Button } from '@/components/ui/button';
 import { PortfolioItemForm } from '@/components/PortfolioItemForm';
 import { ImageUpload } from '@/components/ImageUpload';
@@ -1102,10 +1103,11 @@ const Admin = () => {
 
   // Image upload functions
   const handleImageUpload = async (files: FileList | File[]) => {
+    const compressed = await Promise.all(
+      Array.from(files).map(f => compressImage(f, 1920, 1080, 0.85))
+    );
     const formData = new FormData();
-    Array.from(files).forEach(file => {
-      formData.append('files', file);
-    });
+    compressed.forEach(file => formData.append('files', file));
 
     try {
       const response = await fetch('/api/upload', {
@@ -1353,10 +1355,11 @@ const Admin = () => {
 
   // Certification image upload
   const handleCertificationImageUpload = async (files: FileList | File[]) => {
+    const compressed = await Promise.all(
+      Array.from(files).map(f => compressImage(f, 1200, 900, 0.85))
+    );
     const formData = new FormData();
-    Array.from(files).forEach(file => {
-      formData.append('files', file);
-    });
+    compressed.forEach(file => formData.append('files', file));
 
     try {
       const response = await fetch('/api/upload', {

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Save, User, Plus, Trash2, Loader2, RefreshCw, Sparkles, Target, Tag, Heart } from "lucide-react";
 import { ImageUpload } from "@/components/ImageUpload";
+import { compressImage } from "@/lib/compressImage";
 import { motion } from "framer-motion";
 import { IconPicker } from "@/components/admin/shared/IconPicker";
 import { AdminLoader } from "../AdminLoader";
@@ -95,8 +96,9 @@ export const AboutAdmin = () => {
         setIsUploading(true);
         const toastId = toast.loading("Uploading avatar...");
 
+        const compressed = await compressImage(files[0], 800, 800, 0.85);
         const formData = new FormData();
-        formData.append('files', files[0]);
+        formData.append('files', compressed);
 
         try {
             const res = await fetch('/api/upload', { method: 'POST', body: formData });

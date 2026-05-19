@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { NeonButton } from "@/components/ui/neon-button";
+import { compressImage } from "@/lib/compressImage";
 import { ParallaxCard } from "@/components/ui/parallax-card";
 import { motion, AnimatePresence, Reorder } from "framer-motion";
 import {
@@ -385,8 +386,11 @@ export const ProjectsAdmin = () => {
 
         setIsUploading(true);
 
+        const processedFiles = await Promise.all(
+            mediaFiles.map(f => compressImage(f, 1920, 1080, 0.85))
+        );
         const formData = new FormData();
-        mediaFiles.forEach(file => formData.append('files', file));
+        processedFiles.forEach(file => formData.append('files', file));
 
         try {
             const res = await fetch('/api/upload', {

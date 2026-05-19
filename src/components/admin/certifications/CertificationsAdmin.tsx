@@ -10,6 +10,7 @@ import {
     Upload, Eye, Loader2, Filter, LayoutGrid, List, ChevronLeft, ChevronRight, MoreVertical, ExternalLink, Link as LinkIcon
 } from "lucide-react";
 import { NeonButton } from "@/components/ui/neon-button";
+import { compressImage } from "@/lib/compressImage";
 import { ParallaxCard } from "@/components/ui/parallax-card";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -175,8 +176,9 @@ export const CertificationsAdmin = () => {
         }
 
         setIsUploading(true);
+        const compressed = await compressImage(imageFile, 1200, 900, 0.85);
         const formData = new FormData();
-        formData.append('files', imageFile);
+        formData.append('files', compressed);
 
         try {
             const res = await fetch('/api/upload', {

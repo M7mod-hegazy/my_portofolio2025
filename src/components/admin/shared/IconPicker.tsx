@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { Search } from 'lucide-react';
+import { compressImage } from "@/lib/compressImage";
 
 interface IconPickerProps {
     value: string;
@@ -84,8 +85,9 @@ export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, childre
 
     const handleFileUpload = async (file: File) => {
         setIsUploading(true);
+        const compressed = await compressImage(file, 400, 400, 0.85);
         const formData = new FormData();
-        formData.append('files', file);
+        formData.append('files', compressed);
 
         try {
             const res = await fetch('/api/upload', {
