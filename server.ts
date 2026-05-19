@@ -629,27 +629,22 @@ export function createApiServer() {
                 return res.status(410).json({ success: false, error: 'CV was stored locally and is no longer available. Please re-upload your CV.' });
             }
 
-            let fetchUrl = cvUrl;
             let upstream: globalThis.Response;
 
             // Try the direct CDN URL first (works if resource is publicly accessible)
             upstream = await fetch(cvUrl);
 
-            // If 401/403, fall back to a signed delivery URL fetched server-side.
-            // Fetching signed URLs server-side avoids browser CORS/auth issues.
+            // If 401/403, fall back to fetching with Cloudinary API Basic Auth.
+            // Signed delivery URLs are not sufficient for private raw resources —
+            // Basic Auth (api_key:api_secret) always works server-side.
             if (!upstream.ok && (upstream.status === 401 || upstream.status === 403)) {
-                console.log('[CV] Direct URL gave', upstream.status, '— trying signed URL server-side');
-                const uploadMatch = cvUrl.match(/\/upload\/(?:v\d+\/)?(.+)$/);
-                if (uploadMatch) {
-                    const fullPath = uploadMatch[1];
-                    fetchUrl = cloudinary.url(fullPath, {
-                        resource_type: 'raw',
-                        type: 'upload',
-                        sign_url: true,
-                        secure: true,
-                    });
-                    console.log('[CV] Signed URL:', fetchUrl);
-                    upstream = await fetch(fetchUrl);
+                console.log('[CV] Direct URL gave', upstream.status, '— retrying with Cloudinary Basic Auth');
+                const apiKey = process.env.CLOUDINARY_API_KEY;
+                const apiSecret = process.env.CLOUDINARY_API_SECRET;
+                if (apiKey && apiSecret) {
+                    const auth = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64');
+                    upstream = await fetch(cvUrl, { headers: { Authorization: `Basic ${auth}` } });
+                    console.log('[CV] Basic Auth fetch status:', upstream.status);
                 }
             }
 
