@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Save, FileText, Globe, Mail, Phone, MapPin, Linkedin, Github, Twitter, Facebook, Instagram, MessageCircle, Upload, Trash2, Eye, EyeOff } from "lucide-react";
 import { AdminLoader } from "../AdminLoader";
+import { BackupAdmin } from "./BackupAdmin";
 
 interface ContactDB {
     email: string;
@@ -115,6 +116,7 @@ export const SettingsAdmin = () => {
                 <TabsList className="bg-white/5 border border-white/10 p-1">
                     <TabsTrigger value="contact" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-white">Contact & Socials</TabsTrigger>
                     <TabsTrigger value="cv" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-white">Resume / CV</TabsTrigger>
+                    <TabsTrigger value="backup" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-white">Backup & Restore</TabsTrigger>
                 </TabsList>
 
                 {/* Contact & Socials Tab */}
@@ -235,6 +237,10 @@ export const SettingsAdmin = () => {
                             )}
                         </div>
                     </Card>
+                </TabsContent>
+                {/* Backup & Restore Tab */}
+                <TabsContent value="backup" className="mt-6">
+                    <BackupAdmin />
                 </TabsContent>
             </Tabs>
         </div>
