@@ -4,7 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
-import { Readable } from 'stream';
+import { Readable, pipeline } from 'stream';
 import fs from 'fs';
 import path from 'path';
 import { randomBytes, scryptSync, timingSafeEqual, createHmac } from 'crypto';
@@ -664,16 +664,9 @@ export function createApiServer() {
             const contentLength = upstream.headers.get('content-length');
             if (contentLength) res.setHeader('Content-Length', contentLength);
 
-            const reader = upstream.body?.getReader();
-            if (!reader) return res.status(500).json({ success: false, error: 'No response body from upstream' });
+            if (!upstream.body) return res.status(500).json({ success: false, error: 'No response body from upstream' });
 
-            const nodeStream = new Readable({
-                async read() {
-                    const { done, value } = await reader.read();
-                    if (done) { this.push(null); } else { this.push(Buffer.from(value)); }
-                }
-            });
-            nodeStream.pipe(res);
+            await pipeline(Readable.fromWeb(upstream.body as Parameters<typeof Readable.fromWeb>[0]), res);
         } catch (error) {
             console.error('[CV] ERROR:', (error as Error).message);
             res.status(500).json({ success: false, error: (error as Error).message });
@@ -857,7 +850,7 @@ export function createApiServer() {
                 const isPdf = file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
 
                 // PDFs: upload to Cloudinary as raw resource.
-                // The /api/cv/download endpoint generates a signed delivery URL so access restrictions are bypassed.
+                // The /api/cv/download and /api/cv/view endpoints proxy the PDF server-side to avoid CORS/auth issues.
                 if (isPdf) {
                     return new Promise<object>((resolve, reject) => {
                         const safePublicId = `portfolio/documents/cv_${Date.now()}_${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
