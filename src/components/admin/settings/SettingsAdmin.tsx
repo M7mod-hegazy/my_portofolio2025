@@ -349,7 +349,7 @@ function CVUploadArea({ currentUrl, currentFilename, onUpload }: { currentUrl: s
                     </p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => window.open(currentUrl, '_blank')} className="hover:bg-white/10">
+                    <Button variant="ghost" size="sm" onClick={() => window.open('/api/cv/view', '_blank')} className="hover:bg-white/10">
                         View
                     </Button>
                     <Button variant="ghost" size="sm" onClick={handleDownload} className="hover:bg-white/10 text-purple-400">
