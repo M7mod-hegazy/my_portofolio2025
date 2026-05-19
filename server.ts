@@ -631,20 +631,25 @@ export function createApiServer() {
 
             let upstream: globalThis.Response;
 
-            // Try the direct CDN URL first (works if resource is publicly accessible)
+            // Try the direct CDN URL first (works if access_mode is public)
             upstream = await fetch(cvUrl);
 
-            // If 401/403, fall back to fetching with Cloudinary API Basic Auth.
-            // Signed delivery URLs are not sufficient for private raw resources —
-            // Basic Auth (api_key:api_secret) always works server-side.
+            // If 401/403, use Cloudinary's private_download_url which generates an
+            // authenticated download URL at api.cloudinary.com — works for any raw
+            // resource regardless of access_mode, as long as SDK credentials are set.
             if (!upstream.ok && (upstream.status === 401 || upstream.status === 403)) {
-                console.log('[CV] Direct URL gave', upstream.status, '— retrying with Cloudinary Basic Auth');
-                const apiKey = process.env.CLOUDINARY_API_KEY;
-                const apiSecret = process.env.CLOUDINARY_API_SECRET;
-                if (apiKey && apiSecret) {
-                    const auth = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64');
-                    upstream = await fetch(cvUrl, { headers: { Authorization: `Basic ${auth}` } });
-                    console.log('[CV] Basic Auth fetch status:', upstream.status);
+                console.log('[CV] Direct URL gave', upstream.status, '— generating private download URL');
+                const uploadMatch = cvUrl.match(/\/upload\/(?:v\d+\/)?(.+)$/);
+                if (uploadMatch) {
+                    const publicId = uploadMatch[1];
+                    const privateUrl = cloudinary.utils.private_download_url(publicId, '', {
+                        resource_type: 'raw',
+                        type: 'upload',
+                        expires_at: Math.floor(Date.now() / 1000) + 600,
+                    });
+                    console.log('[CV] Private download URL generated');
+                    upstream = await fetch(privateUrl);
+                    console.log('[CV] Private download fetch status:', upstream.status);
                 }
             }
 
